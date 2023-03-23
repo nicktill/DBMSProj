@@ -5,7 +5,7 @@
 
 -- NOTE: Assumptions are inline with our table schemas and triggers
 
-DROP TABLE IF EXISTS "user" CASCADE;
+DROP TABLE IF EXISTS profile CASCADE;
 DROP TABLE IF EXISTS friend CASCADE;
 DROP TABLE IF EXISTS pendingFriend CASCADE;
 DROP TABLE IF EXISTS groupInfo CASCADE;
@@ -22,9 +22,8 @@ DROP TABLE IF EXISTS Clock CASCADE;
     -- Decide NULL or DEFAULT for message
 ------------------------------------------------
 
-
 -- Stores the user and login information for each user registered in the system.
-CREATE TABLE "user" (
+CREATE TABLE profile (
     userID          INT, -- primary key
     name            VARCHAR(50) NOT NULL, -- Cannot make a user without a name. Names can be repeated
     email           VARCHAR(50) NOT NULL, -- Will also be unique, but since userID is an integer it is a better PK
@@ -50,9 +49,9 @@ CREATE TABLE friend (
     -- Constraints
     CONSTRAINT PK_friend PRIMARY KEY (userID1, userID2),
     -- When a user is removed from the system, we should remove all dependent friendship entries.
-    CONSTRAINT FK1_friend FOREIGN KEY (userID1) REFERENCES "user"(userID)
+    CONSTRAINT FK1_friend FOREIGN KEY (userID1) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK2_friend FOREIGN KEY (userID2) REFERENCES "user"(userID)
+    CONSTRAINT FK2_friend FOREIGN KEY (userID2) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -66,9 +65,9 @@ CREATE TABLE pendingFriend (
     CONSTRAINT PK_pendingFriend PRIMARY KEY (fromID, toID),
     -- If a user is removed, we want to remove pending requests
     -- Same principle for updates
-    CONSTRAINT FK1_pendingFriend FOREIGN KEY (fromID) REFERENCES "user"(userID)
+    CONSTRAINT FK1_pendingFriend FOREIGN KEY (fromID) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT FK2_pendingFriend FOREIGN KEY (toID) REFERENCES "user"(userID)
+    CONSTRAINT FK2_pendingFriend FOREIGN KEY (toID) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -101,7 +100,7 @@ CREATE TABLE groupMember (
     CONSTRAINT FK1_groupMember FOREIGN KEY (gID) REFERENCES groupInfo(gID)
         ON DELETE CASCADE ON UPDATE CASCADE,
     -- If a user is deleted, all of their respective groupMember entries should be deleted
-    CONSTRAINT FK2_groupMember FOREIGN KEY (userID) REFERENCES "user"(userID)
+    CONSTRAINT FK2_groupMember FOREIGN KEY (userID) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE,
     -- The DB manager can have varying roles
     CONSTRAINT IC_group_role CHECK ( role IN ( 'manager', 'member' ) )
@@ -140,10 +139,10 @@ CREATE TABLE message (
     CONSTRAINT PK_message PRIMARY KEY (msgID),
     -- If a sender is deleted, we should set the foreign key to null so that
     -- messages can be preserved for other users
-    CONSTRAINT FK1_message FOREIGN KEY (fromID) REFERENCES "user"(userID)
+    CONSTRAINT FK1_message FOREIGN KEY (fromID) REFERENCES profile(userID)
         ON DELETE SET NULL ON UPDATE CASCADE,
     -- Same principle for recipient
-    CONSTRAINT FK2_message FOREIGN KEY (toUserID) REFERENCES "user"(userID)
+    CONSTRAINT FK2_message FOREIGN KEY (toUserID) REFERENCES profile(userID)
         ON DELETE SET NULL ON UPDATE CASCADE,
     -- If a group is deleted, then all the associated messages are deleted
     CONSTRAINT FK3_message FOREIGN KEY (toGroupID) REFERENCES groupInfo(gID)
@@ -162,7 +161,7 @@ CREATE TABLE messageRecipient (
         ON DELETE CASCADE ON UPDATE CASCADE,
     -- If a user is deleted, even though we keep the message, we do not need to have
     -- an entry in the messageRecipient table so we cascade changes
-    CONSTRAINT FK2_messageRecipient FOREIGN KEY (userID) REFERENCES "user"(userID)
+    CONSTRAINT FK2_messageRecipient FOREIGN KEY (userID) REFERENCES profile(userID)
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -180,7 +179,7 @@ CREATE TABLE Clock (
 -- Clock has only one tuple, inserted as part of initialization and is updated during time traveling.
 INSERT INTO Clock VALUES ('2023-01-01 00:00:00');
 
-SELECT * FROM "user";
+SELECT * FROM profile;
 SELECT * FROM friend;
 SELECT * FROM pendingFriend;
 SELECT * FROM groupInfo;
