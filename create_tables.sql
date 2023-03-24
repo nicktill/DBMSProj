@@ -76,13 +76,13 @@ CREATE TABLE pendingFriend (
 CREATE TABLE groupInfo (
     gID             INT,
     name            VARCHAR(50) NOT NULL, -- Groups need to have a name associated with them
-    size            INT DEFAULT 1, -- When a group is created, the owner is the first member
+    size            INT DEFAULT 10, -- When a group is created, the owner is the first member
     description     VARCHAR(200), -- Group descriptions can be null
 
     -- Constraints
     CONSTRAINT PK_groupInfo PRIMARY KEY (gID),
-    -- A group must always have at least one member
-    CONSTRAINT IC_groupSize CHECK (size >= 1)
+    -- A group must have a max size of a positive integer
+    CONSTRAINT IC_positive_size CHECK (size > 0)
 );
 
 -- Stores the users who are members of each group in the system.
