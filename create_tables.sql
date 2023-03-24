@@ -29,8 +29,8 @@ CREATE TABLE profile (
     name            VARCHAR(50) NOT NULL, -- Cannot make a user without a name. Names can be repeated
     email           VARCHAR(50) NOT NULL, -- Will also be unique, but since userID is an integer it is a better PK
     password        VARCHAR(50) NOT NULL, -- Users need a password for security reasons
-    date_of_birth   DATE,
-    lastlogin       TIMESTAMP,
+    date_of_birth   DATE        NOT NULL, -- The way the function is described in phase 2, it asks for a DOB
+    lastlogin       TIMESTAMP   NOT NULL, -- When we make the profile, the user has not logged in so default to NULL
 
     -- Constraints
     CONSTRAINT PK_user PRIMARY KEY (userID),
