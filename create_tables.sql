@@ -20,6 +20,7 @@ DROP TABLE IF EXISTS Clock CASCADE;
     -- Check about whether or not to have a NOT NULL on DOB for users
     -- Check if there should be a default timestamp for lastLogin
     -- Decide NULL or DEFAULT for message
+    -- Size is the max size
 ------------------------------------------------
 
 -- Stores the user and login information for each user registered in the system.
@@ -44,7 +45,7 @@ CREATE TABLE friend (
     userID1         INT,
     userID2         INT,
     JDate           DATE NOT NULL,
-    requestText     VARCHAR(200) DEFAULT E'Hey! Let\'s be friends.', -- Come back to later
+    requestText     VARCHAR(200) DEFAULT 'Hey! Let''s be friends.', -- Come back to later
 
     -- Constraints
     CONSTRAINT PK_friend PRIMARY KEY (userID1, userID2),
@@ -59,7 +60,7 @@ CREATE TABLE friend (
 CREATE TABLE pendingFriend (
     fromID          INT,
     toID            INT,
-    requestText     VARCHAR(200) DEFAULT E'Hey! Let\'s be friends.',
+    requestText     VARCHAR(200) DEFAULT 'Hey! Let''s be friends.',
 
     -- Constraints
     CONSTRAINT PK_pendingFriend PRIMARY KEY (fromID, toID),
