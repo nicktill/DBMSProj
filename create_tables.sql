@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS Clock CASCADE;
     -- Check if there should be a default timestamp for lastLogin
     -- Decide NULL or DEFAULT for message
     -- Size is the max size
+    -- Write Trigger to make sure friendships are not repeated
 ------------------------------------------------
 
 -- Stores the user and login information for each user registered in the system.
@@ -176,6 +177,36 @@ CREATE TABLE Clock (
     -- Constraints
     CONSTRAINT PK_Clock PRIMARY KEY (pseudo_time)
 );
+
+-- Triggers
+CREATE OR REPLACE FUNCTION check_group_size()
+RETURNS TRIGGER AS
+$$
+    DECLARE
+        groupMaxSize int;
+        groupCurrSize int;
+
+    BEGIN
+        SELECT size INTO groupMaxSize
+        FROM groupInfo
+        WHERE gID = NEW.gID;
+
+        SELECT COUNT(userID) INTO groupCurrSize
+        FROM groupMember
+        WHERE gID = NEW.gID;
+
+        IF groupCurrSize + 1 > groupMaxSize THEN
+            RETURN NULL;
+        END IF;
+
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_group_size
+    BEFORE INSERT ON groupMember
+    FOR EACH ROW
+    EXECUTE PROCEDURE check_group_size();
 
 -- Clock has only one tuple, inserted as part of initialization and is updated during time traveling.
 INSERT INTO Clock VALUES ('2023-01-01 00:00:00');
