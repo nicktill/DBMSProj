@@ -4,6 +4,8 @@ from faker import Faker
 # Documentation can be found at: https://faker.readthedocs.io/
 fake = Faker()
 
+def create_profile()
+
 def main():
     # Open our data insert file, can change later if needed
     open('./data-insert.sql', 'w')
