@@ -196,6 +196,7 @@ $$
         WHERE gID = NEW.gID;
 
         IF groupCurrSize + 1 > groupMaxSize THEN
+            -- Should not make this change, return null
             RETURN NULL;
         END IF;
 
@@ -203,10 +204,34 @@ $$
     END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER trigger_group_size
+CREATE OR REPLACE TRIGGER groupSize
     BEFORE INSERT ON groupMember
     FOR EACH ROW
     EXECUTE PROCEDURE check_group_size();
+
+CREATE OR REPLACE FUNCTION increment_pid()
+RETURNS TRIGGER AS
+$$
+    DECLARE
+        maxID int;
+    BEGIN
+        SELECT MAX(userID) INTO maxID
+        FROM profile;
+
+        IF maxID IS NULL THEN
+            NEW.userID = 0;
+        ELSE
+            NEW.userID = maxID + 1;
+        END IF;
+
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER incrementUserID
+    BEFORE INSERT ON profile
+    FOR EACH ROW
+    EXECUTE FUNCTION increment_pid();
 
 -- Clock has only one tuple, inserted as part of initialization and is updated during time traveling.
 INSERT INTO Clock VALUES ('2023-01-01 00:00:00');
