@@ -4,6 +4,7 @@
 ----------------------------------------------------------
 
 -- TODO: Check input integrity
+-- TODO: Add trigger to make sure user is in group message is sent to
 
 -- We want a trigger to make sure that the group size will never go over the max size
 CREATE OR REPLACE FUNCTION check_group_size()
@@ -100,7 +101,7 @@ $$
         -- Checking the friend relationship doesn't already exist
         SELECT * INTO friendRecord
         FROM friend
-        WHERE userid1 = minID AND userid2 = maxID;
+        WHERE userid1 == minID AND userid2 == maxID;
 
         IF friendRecord IS NOT NULL THEN
             RAISE EXCEPTION 'Friendship already exists' USING ERRCODE = '00002';
