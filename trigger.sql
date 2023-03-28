@@ -84,7 +84,7 @@ $$
 BEGIN
         -- removing the pendingGroupMember AFTER INSERT to groupMember, so we can use this trigger to update the groupMember table
         DELETE FROM pendingGroupMember WHERE gID = NEW.gID AND userID = NEW.userID; --REMOVE PENDING MEMBER REQUEST from pendingGroupMember Table
-        INSERT INTO groupMember (gID, userID, role, lastConfirmed) VALUES (NEW.gID, NEW.userID, 'member', system_timestamp()); -- Add coresponding data to memberTable
+        INSERT INTO groupMember (gID, userID, role, lastConfirmed) VALUES (NEW.gID, NEW.userID, 'member', SYSTIMESTAMP); -- Add coresponding data to memberTable
         RETURN NEW;
     END IF;
 END;
