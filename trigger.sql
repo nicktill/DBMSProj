@@ -81,16 +81,8 @@ CREATE OR REPLACE TRIGGER addMessageRecipient
 CREATE OR REPLACE FUNCTION update_group()
 RETURNS TRIGGER AS
 $$
-DECLARE
-    joinStatus BOOLEAN;
 BEGIN
-    SELECT approvalStatus INTO joinStatus
-    FROM groupMember
-    WHERE gID = NEW.gID AND userID = NEW.userID; -- Add a WHERE clause to specify the row(s) to select
-
---  ASSUMPTIONS: 
---  when a manager accepts a new user, they set the pendingGroupMember approvalStatus to TRUE 
-    IF approveStatus = 'TRUE' THEN
+        -- removing the pendingGroupMember AFTER INSERT to groupMember, so we can use this trigger to update the groupMember table
         DELETE FROM pendingGroupMember WHERE gID = NEW.gID AND userID = NEW.userID; --REMOVE PENDING MEMBER REQUEST from pendingGroupMember Table
         INSERT INTO groupMember (gID, userID, role, lastConfirmed) VALUES (NEW.gID, NEW.userID, 'member', system_timestamp()); -- Add coresponding data to memberTable
         RETURN NEW;
@@ -100,7 +92,7 @@ $$ LANGUAGE plpgsql;
 
 -- addMember trigger
 CREATE OR REPLACE TRIGGER update_group
-    AFTER UPDATE 
-    ON pendingGroupMember
+    AFTER INSERT 
+    ON groupMember
     FOR EACH ROW
     EXECUTE FUNCTION update_group()
