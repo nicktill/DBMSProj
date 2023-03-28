@@ -61,6 +61,22 @@ CREATE OR REPLACE TRIGGER incrementUserID
     FOR EACH ROW
     EXECUTE FUNCTION increment_pid();
 
+-- We want to add a corresponding entry into the messageRecipient relation upon adding a new message to the message relation
+CREATE OR REPLACE FUNCTION add_message_recipient()
+RETURNS TRIGGER AS $$
+BEGIN
+    insert into messagerecipient values (new.msgid, new.touserid);
+    return new;
+END;
+$$ language plpgsql;
+
+CREATE OR REPLACE TRIGGER addMessageRecipient
+    AFTER INSERT
+    ON message
+    FOR EACH ROW -- Why does this have to be a row-level trigger rather than a table-level trigger?
+    EXECUTE FUNCTION add_message_recipient();
+
+
 -- We want to make sure that friends are not repeated
 CREATE OR REPLACE FUNCTION resolve_friend()
 RETURNS TRIGGER AS
