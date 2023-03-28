@@ -115,6 +115,7 @@ CREATE TABLE pendingGroupMember (
     userID          INT,
     requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)',
     requestTime     TIMESTAMP,
+    approvalStatus BOOLEAN(20) DEFAULT 'FALSE' -- The approval status of the request
 
     -- Constraints
     CONSTRAINT PK_pendingGroupMember PRIMARY KEY (gID, userID),
