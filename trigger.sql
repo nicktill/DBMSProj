@@ -1,6 +1,8 @@
 ----------------------------------------------------------
+
 -- BeSocial Database Triggers                           --
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
+
 ----------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION check_group_size()
