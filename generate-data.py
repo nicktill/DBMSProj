@@ -4,7 +4,8 @@ from faker import Faker
 # Documentation can be found at: https://faker.readthedocs.io/
 fake = Faker()
 
-def create_profile()
+def create_profile():
+    pass
 
 def main():
     # Open our data insert file, can change later if needed
