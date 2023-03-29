@@ -6,6 +6,7 @@ import random
 fake = Faker()
 userID = -1
 groupID = -1
+messageID = -1
 friends = set()
 
 def create_profile() -> str:
@@ -26,7 +27,7 @@ def create_friendship() -> str:
     friendA = friendB = None
 
     # Make sure that the friend pairings are unique
-    while (friendA, friendB) in friends or (friendB, friendA) in friends:
+    while friendA is None or (friendA, friendB) in friends or (friendB, friendA) in friends:
         friendA, friendB = random.randint(0, userID - 1), random.randint(0, userID - 1)
 
     friends.add((friendA, friendB))
@@ -73,6 +74,25 @@ def create_group(min_size: int = 5, max_size: int = 15) -> list[str]:
 
     return ret
 
+def create_message() -> str:
+    global userID
+    global messageID
+    global groupID
+
+    messageID += 1
+    fromID = random.randint(0, userID)
+    message = fake.text(200).replace("\n", " ")
+    toUser = toUser = random.randint(0, userID)
+    while toUser == fromID:
+        toUser = random.randint(0, userID)
+        
+    #TODO: Consider message sender having to be in group. Can use hash map or hash set to track this
+    toGroup = random.randint(0, groupID)
+    timeSent = fake.date_time()
+    
+
+    return f'INSERT INTO message VALUES({messageID}, {fromID}, \'{message}\', {toUser}, {toGroup}, \'{timeSent}\');\n'
+
 def main():
     # Open our data insert file, can change later if needed
     with open('./sample-data.sql', 'w') as file:
@@ -100,7 +120,7 @@ def main():
         # Generate Messages
         file.write('-- Generate 300 Messages\n')
         for _ in range(300):
-            file.write('')
+            file.write(create_message())
 
 if __name__ == '__main__':
     main()

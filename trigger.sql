@@ -84,8 +84,8 @@ RETURNS TRIGGER AS
 $$
     DECLARE
         friendRecord friend%ROWTYPE := NULL;
-        minID int := NULL;
-        maxID int := NULL;
+        minID int := 0;
+        maxID int := 0;
     BEGIN
         IF NEW.userid1 > NEW.userid2 THEN
             minID := NEW.userid2;
@@ -101,7 +101,7 @@ $$
         -- Checking the friend relationship doesn't already exist
         SELECT * INTO friendRecord
         FROM friend
-        WHERE userid1 == minID AND userid2 == maxID;
+        WHERE userid1 = minID AND userid2 = maxID;
 
         IF friendRecord IS NOT NULL THEN
             RAISE EXCEPTION 'Friendship already exists' USING ERRCODE = '00002';
