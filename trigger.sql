@@ -80,7 +80,6 @@ CREATE OR REPLACE TRIGGER addMessageRecipient
     EXECUTE FUNCTION add_message_recipient();
 
 
-<<<<<<< HEAD
 -- addMemberToGroup Trigger
 
 -- addMember function
@@ -102,7 +101,7 @@ CREATE OR REPLACE TRIGGER update_group
     ON groupMember
     FOR EACH ROW
     EXECUTE FUNCTION update_group()
-=======
+    
 -- We want to make sure that friends are not repeated
 CREATE OR REPLACE FUNCTION resolve_friend()
 RETURNS TRIGGER AS
@@ -140,4 +139,3 @@ CREATE OR REPLACE TRIGGER friendOrder
     BEFORE INSERT ON friend
     FOR EACH ROW
     EXECUTE FUNCTION resolve_friend();
->>>>>>> 464385aec50522dde36def1703384f3c862ea842
