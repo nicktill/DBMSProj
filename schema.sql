@@ -42,8 +42,8 @@ CREATE TABLE profile (
 CREATE TABLE friend (
     userID1         INT,
     userID2         INT,
-    JDate           DATE NOT NULL,
-    requestText     VARCHAR(200) DEFAULT 'Hey! Let''s be friends.', -- Come back to later
+    JDate           DATE NOT NULL, -- Should be NOT NULL to prevent bad data from entering the database
+    requestText     VARCHAR(200) DEFAULT 'Hey! Let''s be friends.',
 
     -- Constraints
     CONSTRAINT PK_friend PRIMARY KEY (userID1, userID2),
@@ -89,7 +89,7 @@ CREATE TABLE groupInfo (
 CREATE TABLE groupMember (
     gID             INT,
     userID          INT,
-    role            VARCHAR(20),
+    role            VARCHAR(20) NOT NULL, -- User must have a role within the group
     lastConfirmed   TIMESTAMP NOT NULL, -- The system should never have a NULL value for this
 
     -- Constraints
@@ -111,7 +111,8 @@ CREATE TABLE pendingGroupMember (
     gID             INT,
     userID          INT,
     requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)',
-    requestTime     TIMESTAMP,
+    requestTime     TIMESTAMP   NOT NULL, -- Ensure a timestamp is included in the table
+
     -- Constraints
     CONSTRAINT PK_pendingGroupMember PRIMARY KEY (gID, userID),
     -- When a group is deleted, the pending group member entries should be deleted since
@@ -129,9 +130,9 @@ CREATE TABLE message (
     msgID           INT,
     fromID          INT,
     messageBody     VARCHAR(200) NOT NULL,
-    toUserID        INT DEFAULT NULL,
-    toGroupID       INT DEFAULT NULL,
-    timeSent        TIMESTAMP,
+    toUserID        INT DEFAULT NULL, -- Specified DEFAULT NULL in pdf
+    toGroupID       INT DEFAULT NULL, -- Specified DEFAULT NULL in pdf
+    timeSent        TIMESTAMP   NOT NULL, -- Timestamps in system should not be NULL
 
     -- Constraints
     CONSTRAINT PK_message PRIMARY KEY (msgID),
