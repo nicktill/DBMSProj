@@ -17,9 +17,6 @@ DROP TABLE IF EXISTS Clock CASCADE;
 
 ------------------------------------------------
 -- TODO:
-    -- Check about whether or not to have a NOT NULL on DOB for users
-    -- Check if there should be a default timestamp for lastLogin
-    -- Decide NULL or DEFAULT for message
     -- Size is the max size
     -- Write Trigger to make sure friendships are not repeated
 ------------------------------------------------
