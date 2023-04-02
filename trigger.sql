@@ -5,12 +5,16 @@
 
 ----------------------------------------------------------
 
+-- TODO: Check input integrity
+-- TODO: Add trigger to make sure user is in group message is sent to
+
+-- We want a trigger to make sure that the group size will never go over the max size
 CREATE OR REPLACE FUNCTION check_group_size()
 RETURNS TRIGGER AS
 $$
     DECLARE
-        groupMaxSize int;
-        groupCurrSize int;
+        groupMaxSize int := 0;
+        groupCurrSize int := 0;
 
     BEGIN
         SELECT size INTO groupMaxSize
@@ -23,19 +27,19 @@ $$
 
         IF groupCurrSize + 1 > groupMaxSize THEN
             -- Should not make this change, return null
-            RETURN NULL;
+            RAISE EXCEPTION 'Cannot exceed max group size' USING ERRCODE = '00001';
         END IF;
 
         RETURN NEW;
     END;
 $$ LANGUAGE plpgsql;
 
--- We want a trigger to make sure that the group size will never go over the max size
 CREATE OR REPLACE TRIGGER groupSize
     BEFORE INSERT ON groupMember
     FOR EACH ROW
-    EXECUTE PROCEDURE check_group_size();
+    EXECUTE FUNCTION check_group_size();
 
+-- We want to make sure that the profile ID's will be the next highest integer available
 CREATE OR REPLACE FUNCTION increment_pid()
 RETURNS TRIGGER AS
 $$
@@ -55,7 +59,6 @@ $$
     END;
 $$ LANGUAGE plpgsql;
 
--- We want to make sure that the profile ID's will be the next highest integer available
 CREATE OR REPLACE TRIGGER incrementUserID
     BEFORE INSERT ON profile
     FOR EACH ROW
@@ -77,6 +80,7 @@ CREATE OR REPLACE TRIGGER addMessageRecipient
     EXECUTE FUNCTION add_message_recipient();
 
 
+<<<<<<< HEAD
 -- addMemberToGroup Trigger
 
 -- addMember function
@@ -98,3 +102,42 @@ CREATE OR REPLACE TRIGGER update_group
     ON groupMember
     FOR EACH ROW
     EXECUTE FUNCTION update_group()
+=======
+-- We want to make sure that friends are not repeated
+CREATE OR REPLACE FUNCTION resolve_friend()
+RETURNS TRIGGER AS
+$$
+    DECLARE
+        friendRecord friend%ROWTYPE := NULL;
+        minID int := 0;
+        maxID int := 0;
+    BEGIN
+        IF NEW.userid1 > NEW.userid2 THEN
+            minID := NEW.userid2;
+            maxID := NEW.userid1;
+        ELSE
+            minID := NEW.userid1;
+            maxID := NEW.userid2;
+        END IF;
+
+        NEW.userid1 := minID;
+        NEW.userid2 := maxID;
+
+        -- Checking the friend relationship doesn't already exist
+        SELECT * INTO friendRecord
+        FROM friend
+        WHERE userid1 = minID AND userid2 = maxID;
+
+        IF friendRecord IS NOT NULL THEN
+            RAISE EXCEPTION 'Friendship already exists' USING ERRCODE = '00002';
+        END IF;
+
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER friendOrder
+    BEFORE INSERT ON friend
+    FOR EACH ROW
+    EXECUTE FUNCTION resolve_friend();
+>>>>>>> 464385aec50522dde36def1703384f3c862ea842
