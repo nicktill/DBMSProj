@@ -1,6 +1,8 @@
 ----------------------------------------------------------
+
 -- BeSocial Database Triggers                           --
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
+
 ----------------------------------------------------------
 
 -- TODO: Check input integrity
@@ -78,6 +80,28 @@ CREATE OR REPLACE TRIGGER addMessageRecipient
     EXECUTE FUNCTION add_message_recipient();
 
 
+-- addMemberToGroup Trigger
+
+-- addMember function
+CREATE OR REPLACE FUNCTION update_group()
+RETURNS TRIGGER AS
+$$
+BEGIN
+        -- removing the pendingGroupMember AFTER INSERT to groupMember, so we can use this trigger to update the groupMember table
+        DELETE FROM pendingGroupMember WHERE gID = NEW.gID AND userID = NEW.userID; --REMOVE PENDING MEMBER REQUEST from pendingGroupMember Table
+        INSERT INTO groupMember (gID, userID, role, lastConfirmed) VALUES (NEW.gID, NEW.userID, 'member', SYSTIMESTAMP); -- Add coresponding data to memberTable
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- addMember trigger
+CREATE OR REPLACE TRIGGER update_group
+    AFTER INSERT 
+    ON groupMember
+    FOR EACH ROW
+    EXECUTE FUNCTION update_group()
+    
 -- We want to make sure that friends are not repeated
 CREATE OR REPLACE FUNCTION resolve_friend()
 RETURNS TRIGGER AS

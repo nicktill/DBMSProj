@@ -115,7 +115,6 @@ CREATE TABLE pendingGroupMember (
     userID          INT,
     requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)',
     requestTime     TIMESTAMP,
-
     -- Constraints
     CONSTRAINT PK_pendingGroupMember PRIMARY KEY (gID, userID),
     -- When a group is deleted, the pending group member entries should be deleted since
