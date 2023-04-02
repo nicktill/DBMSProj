@@ -8,6 +8,8 @@ userID = -1
 groupID = -1
 messageID = -1
 friends = set()
+numGroupsGenerated = 10
+groupList = [] # List of the groups and their members
 
 def create_profile() -> str:
     # TODO: Make it so that the IDs are random to test trigger
@@ -63,6 +65,7 @@ def create_group(min_size: int = 5, max_size: int = 15) -> list[str]:
 
     # Generate Member Inserts
     group = set()
+
     for _ in range(num_members):
         user = random.randint(0, userID)
         while user in group:
@@ -72,6 +75,8 @@ def create_group(min_size: int = 5, max_size: int = 15) -> list[str]:
         roles = ['manager', 'member']
         ret.append(f'INSERT INTO groupMember VALUES ({groupID}, {user}, \'{random.choice(roles)}\', \'{fake.date_time()}\');\n')
 
+    groupList.append(list(group))
+
     return ret
 
 def create_message() -> str:
@@ -79,17 +84,26 @@ def create_message() -> str:
     global messageID
     global groupID
 
+    # Generate a fake message
     messageID += 1
-    fromID = random.randint(0, userID)
     message = fake.text(200).replace("\n", " ")
-    toUser = toUser = random.randint(0, userID)
-    while toUser == fromID:
-        toUser = random.randint(0, userID)
         
-    #TODO: Consider message sender having to be in group. Can use hash map or hash set to track this
+    # Generate a random group number to send the message to
     toGroup = random.randint(0, groupID)
+
+    # Generate a fake time
     timeSent = fake.date_time()
-    
+
+    # Get a random user from the group to send the message to
+    toUserIndex = random.randint(0, len(groupList[toGroup])-1)
+    toUser = groupList[toGroup][toUserIndex]
+
+    # Get a random user from the group to send the message from
+    fromIndex = random.randint(0, len(groupList[toGroup])-1)
+    # Ensure that the fromUser is not the toUser
+    while fromIndex == toUserIndex:
+        fromIndex = random.randint(0, len(groupList[toGroup])-1)
+    fromID = groupList[toGroup][fromIndex]
 
     return f'INSERT INTO message VALUES({messageID}, {fromID}, \'{message}\', {toUser}, {toGroup}, \'{timeSent}\');\n'
 
@@ -113,7 +127,7 @@ def main():
 
         # Generate Groups
         file.write('-- Generate 10 Groups\n')
-        for _ in range(10):
+        for _ in range(numGroupsGenerated):
             file.writelines(create_group())
         file.write('\n')
 
