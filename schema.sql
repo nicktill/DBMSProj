@@ -15,12 +15,6 @@ DROP TABLE IF EXISTS message CASCADE;
 DROP TABLE IF EXISTS messageRecipient CASCADE;
 DROP TABLE IF EXISTS Clock CASCADE;
 
-------------------------------------------------
--- TODO:
-    -- Size is the max size
-    -- Write Trigger to make sure friendships are not repeated
-------------------------------------------------
-
 -- Stores the user and login information for each user registered in the system.
 CREATE TABLE profile (
     userID          INT, -- primary key
@@ -75,6 +69,7 @@ CREATE TABLE groupInfo (
     gID             INT,
     name            VARCHAR(50) NOT NULL, -- Groups need to have a name associated with them
     size            INT DEFAULT 10, -- When a group is created, the owner is the first member
+    -- TODO: Not null?
     description     VARCHAR(200), -- Group descriptions can be null
 
     -- Constraints
@@ -176,7 +171,7 @@ CREATE TABLE Clock (
 );
 
 -- Clock has only one tuple, inserted as part of initialization and is updated during time traveling.
-INSERT INTO Clock VALUES ('2023-01-01 00:00:00');
+INSERT INTO Clock VALUES ('2022-01-01 00:00:00');
 
 SELECT * FROM profile;
 SELECT * FROM friend;

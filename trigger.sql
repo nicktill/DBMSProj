@@ -1,13 +1,12 @@
 ----------------------------------------------------------
-
 -- BeSocial Database Triggers                           --
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
-
 ----------------------------------------------------------
 
 -- TODO: Check input integrity
-    -- Check if user being added to a group is a pending member before being added?
+    -- TODO: Check if user being added to a group is a pending member before being added?
 -- TODO: Add trigger to make sure user is in group message is sent to
+-- TODO: Ask about using the clock with triggers
 
 
 -- We want a trigger to make sure that the group size will never go over the max size
@@ -29,6 +28,11 @@ BEGIN
     FROM groupMember
     WHERE gID = NEW.gID;
 
+    IF groupMaxSize IS NULL THEN
+        -- Group/group size is not valid
+        RAISE EXCEPTION 'Group is not valid' USING ERRCODE = '00004';
+    END IF;
+
     IF groupCurrSize + 1 > groupMaxSize THEN
         -- Should not make this change, return null
         RAISE EXCEPTION 'Cannot exceed max group size' USING ERRCODE = '00001';
@@ -49,7 +53,7 @@ CREATE OR REPLACE FUNCTION increment_pid()
     RETURNS TRIGGER AS
 $$
 DECLARE
-    maxID int;
+    maxID int := NULL;
 BEGIN
     SELECT MAX(userID)
     INTO maxID
@@ -76,8 +80,8 @@ CREATE OR REPLACE FUNCTION add_message_recipient()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    insert into messagerecipient values (new.msgid, new.touserid);
-    return new;
+    INSERT INTO messagerecipient VALUES (new.msgid, new.touserid);
+    RETURN NEW; -- Good to go ahead and insert
 END;
 $$ language plpgsql;
 
@@ -86,7 +90,6 @@ CREATE OR REPLACE TRIGGER addMessageRecipient
     ON message
     FOR EACH ROW -- Why does this have to be a row-level trigger rather than a table-level trigger?
 EXECUTE FUNCTION add_message_recipient();
-
 
 -- addMemberToGroup Trigger
 
@@ -102,7 +105,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- addMember trigger
-CREATE OR REPLACE TRIGGER update_group
+CREATE OR REPLACE TRIGGER updateGroup
     AFTER INSERT
     ON groupMember
     FOR EACH ROW
@@ -117,6 +120,7 @@ DECLARE
     minID        int            := 0;
     maxID        int            := 0;
 BEGIN
+    -- Order the foreign keys such that id1 < id2
     IF NEW.userid1 > NEW.userid2 THEN
         minID := NEW.userid2;
         maxID := NEW.userid1;
@@ -125,6 +129,7 @@ BEGIN
         maxID := NEW.userid2;
     END IF;
 
+    -- Now actually set id1 < id2
     NEW.userid1 := minID;
     NEW.userid2 := maxID;
 
