@@ -4,10 +4,11 @@
 ----------------------------------------------------------
 
 -- TODO: Check input integrity
-    -- TODO: Check if user being added to a group is a pending member before being added?
--- TODO: Add trigger to make sure user is in group message is sent to
+-- TODO: Check if user being added to a group is a pending member before being added?
+-- TODO: Add trigger to make sure user is in group message is sent to?
 -- TODO: Ask about using the clock with triggers
 
+-- Group Size Limit Trigger
 
 -- We want a trigger to make sure that the group size will never go over the max size
 CREATE OR REPLACE FUNCTION check_group_size()
@@ -48,6 +49,8 @@ CREATE OR REPLACE TRIGGER groupSize
     FOR EACH ROW
 EXECUTE FUNCTION check_group_size();
 
+-- Trigger to make sure profile IDs keep increasing by 1
+
 -- We want to make sure that the profile ID's will be the next highest integer available
 CREATE OR REPLACE FUNCTION increment_pid()
     RETURNS TRIGGER AS
@@ -74,6 +77,8 @@ CREATE OR REPLACE TRIGGER incrementUserID
     ON profile
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
+
+-- Message Recipient Trigger
 
 -- We want to add a corresponding entry into the messageRecipient relation upon adding a new message to the message relation
 CREATE OR REPLACE FUNCTION add_message_recipient()
@@ -110,6 +115,8 @@ CREATE OR REPLACE TRIGGER updateGroup
     ON groupMember
     FOR EACH ROW
 EXECUTE FUNCTION update_group();
+
+-- Trigger to make sure friendships are not double
 
 -- We want to make sure that friends are not repeated
 CREATE OR REPLACE FUNCTION resolve_friend()
