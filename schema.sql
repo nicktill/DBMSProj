@@ -25,7 +25,7 @@ CREATE TABLE profile (
     lastlogin       TIMESTAMP   NOT NULL, -- When we make the profile, the user has not logged in so default to NULL
 
     -- Constraints
-    CONSTRAINT PK_user PRIMARY KEY (userID),
+    CONSTRAINT PK_profile PRIMARY KEY (userID),
     CONSTRAINT UQ_email UNIQUE (email),
     CONSTRAINT IC_email_proper_form CHECK ( email LIKE '%@%.%' ) -- email needs to follow this form
 );
