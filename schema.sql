@@ -69,7 +69,6 @@ CREATE TABLE groupInfo (
     gID             INT,
     name            VARCHAR(50) NOT NULL, -- Groups need to have a name associated with them
     size            INT DEFAULT 10, -- When a group is created, the owner is the first member
-    -- TODO: Not null?
     description     VARCHAR(200), -- Group descriptions can be null
 
     -- Constraints
@@ -106,7 +105,7 @@ CREATE TABLE pendingGroupMember (
     gID             INT,
     userID          INT,
     requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)',
-    requestTime     TIMESTAMP   NOT NULL, -- Ensure a timestamp is included in the table
+    requestTime     TIMESTAMP NOT NULL, -- Ensure a timestamp is included in the table
 
     -- Constraints
     CONSTRAINT PK_pendingGroupMember PRIMARY KEY (gID, userID),

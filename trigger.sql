@@ -3,7 +3,6 @@
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
 ----------------------------------------------------------
 
--- TODO: Check input integrity
 -- TODO: Check if user being added to a group is a pending member before being added?
 -- TODO: Add trigger to make sure user is in group message is sent to?
 -- TODO: Ask about using the clock with triggers
@@ -24,15 +23,15 @@ BEGIN
     FROM groupInfo
     WHERE gID = NEW.gID;
 
-    SELECT COUNT(userID)
-    INTO groupCurrSize
-    FROM groupMember
-    WHERE gID = NEW.gID;
-
     IF groupMaxSize IS NULL THEN
         -- Group/group size is not valid
         RAISE EXCEPTION 'Group is not valid' USING ERRCODE = '00004';
     END IF;
+
+    SELECT COUNT(userID)
+    INTO groupCurrSize
+    FROM groupMember
+    WHERE gID = NEW.gID;
 
     IF groupCurrSize + 1 > groupMaxSize THEN
         -- Should not make this change, return null
@@ -103,15 +102,44 @@ EXECUTE FUNCTION add_message_recipient();
 CREATE OR REPLACE FUNCTION update_group()
     RETURNS TRIGGER AS
 $$
+DECLARE
+    maxLast TIMESTAMP;
+    rec_pending pendinggroupmember%ROWTYPE;
+    groupSize INT := 0;
+    curSize INT := 0;
+    curTime TIMESTAMP;
+
 BEGIN
-    DELETE FROM pendingGroupMember WHERE gID = NEW.gID AND userID = NEW.userID; --REMOVE PENDING MEMBER REQUEST from pendingGroupMember Table
-    RETURN NEW;
+    SELECT COUNT(userID) INTO curSize
+    FROM groupMember
+    WHERE gID = NEW.gID;
+
+    SELECT MAX(lastConfirmed) INTO maxLast
+    FROM groupmember
+    WHERE gid = OLD.gid;
+
+    SELECT size INTO groupSize
+    FROM groupinfo
+    WHERE gid = OLD.gid;
+
+    SELECT pseudo_time INTO curTime
+    FROM clock;
+
+    FOR rec_pending IN SELECT * FROM pendinggroupmember WHERE gid = OLD.gid AND requesttime <= maxLast ORDER BY requesttime
+    LOOP
+        IF curSize < groupSize THEN
+            INSERT INTO groupmember VALUES (rec_pending.gid, rec_pending.userid, 'member', curTime);
+            DELETE FROM pendinggroupmember WHERE gid = rec_pending.gid AND userid = rec_pending.userid;
+            curSize := curSize + 1;
+        END IF;
+    END LOOP;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
 -- addMember trigger
 CREATE OR REPLACE TRIGGER updateGroup
-    AFTER INSERT
+    AFTER DELETE
     ON groupMember
     FOR EACH ROW
 EXECUTE FUNCTION update_group();
