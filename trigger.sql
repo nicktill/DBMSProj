@@ -19,12 +19,9 @@ BEGIN
         INSERT INTO messagerecipient VALUES (new.msgid, new.touserid);
     ELSE
         -- If the message was sent to a group, add entries for each groupMember
-        FOR rec_groupMember IN SELECT * FROM groupmember WHERE gid = NEW.togroupid
+        FOR rec_groupMember IN SELECT * FROM groupmember WHERE gid = NEW.togroupid AND NEW.fromid != groupmember.userid
         LOOP
-            -- Don't want to add sender as a recipient of the message that they sent
-            IF rec_groupMember.userid != NEW.fromid THEN
-                INSERT INTO messagerecipient VALUES (new.msgid, rec_groupMember.userid);
-            END IF;
+            INSERT INTO messagerecipient VALUES (new.msgid, rec_groupMember.userid);
         END LOOP;
     END IF;
 
