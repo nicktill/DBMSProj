@@ -3,19 +3,32 @@
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
 ----------------------------------------------------------
 
--- TODO: Check if user being added to a group is a pending member before being added?
--- TODO: Add trigger to make sure user is in group message is sent to?
--- TODO: Ask about using the clock with triggers
-
 -- Message Recipient Trigger
 
 -- We want to add a corresponding entry into the messageRecipient relation upon adding a new message to the message relation
 CREATE OR REPLACE FUNCTION add_message_recipient()
     RETURNS TRIGGER AS
 $$
+DECLARE
+    rec_groupMember groupmember%ROWTYPE;
+
 BEGIN
-    INSERT INTO messagerecipient VALUES (new.msgid, new.touserid);
-    RETURN NEW; -- Good to go ahead and insert
+    -- toUserID and toGroupID are mutually exclusive amongst each other
+    IF NEW.touserid IS NOT NULL THEN
+        -- If the message was sent to a user, add the message recipient entry
+        INSERT INTO messagerecipient VALUES (new.msgid, new.touserid);
+    ELSE
+        -- If the message was sent to a group, add entries for each groupMember
+        FOR rec_groupMember IN SELECT * FROM groupmember WHERE gid = NEW.togroupid
+        LOOP
+            -- Don't want to add sender as a recipient of the message that they sent
+            IF rec_groupMember.userid != NEW.fromid THEN
+                INSERT INTO messagerecipient VALUES (new.msgid, rec_groupMember.userid);
+            END IF;
+        END LOOP;
+    END IF;
+
+    RETURN NEW; -- Regardless, return new to signify to the trigger that there were no errors
 END;
 $$ language plpgsql;
 

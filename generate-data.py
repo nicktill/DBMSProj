@@ -87,23 +87,24 @@ def create_message() -> str:
     # Generate a fake message
     messageID += 1
     message = fake.text(200).replace("\n", " ")
-        
-    # Generate a random group number to send the message to
-    toGroup = random.randint(0, groupID)
 
     # Generate a fake time
     timeSent = fake.date_time()
 
-    # Get a random user from the group to send the message to
-    toUserIndex = random.randint(0, len(groupList[toGroup])-1)
-    toUser = groupList[toGroup][toUserIndex]
-
-    # Get a random user from the group to send the message from
-    fromIndex = random.randint(0, len(groupList[toGroup])-1)
-    # Ensure that the fromUser is not the toUser
-    while fromIndex == toUserIndex:
-        fromIndex = random.randint(0, len(groupList[toGroup])-1)
-    fromID = groupList[toGroup][fromIndex]
+    # Generate a group/user to send the message to
+    toGroup = 'NULL'
+    toUser = 'NULL'
+    fromID = -1
+    if random.randint(0, 1): 
+        # Generate a random group number to send the message to
+        toGroup = random.randint(0, groupID)
+        fromID = random.choice(groupList[toGroup]) 
+    else:
+        # Generate a random user to send it to and another who isn't the sender
+        fromID = random.randint(0, userID)
+        toUser = random.randint(0, userID)
+        while toUser == fromID:
+            toUser = random.randint(0, userID)
 
     return f'INSERT INTO message VALUES({messageID}, {fromID}, \'{message}\', {toUser}, {toGroup}, \'{timeSent}\');\n'
 
