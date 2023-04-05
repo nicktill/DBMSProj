@@ -3,6 +3,8 @@
 -- Authors: Steven Jarmell, Jonah Osband, Nick Tillmann --
 ----------------------------------------------------------
 
+-- TODO: Add trigger to make sure user is in group message is sent to?
+
 -- Trigger to make sure friendships are not double
 
 -- We want to make sure that friends are not repeated
