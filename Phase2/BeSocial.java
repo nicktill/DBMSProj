@@ -169,10 +169,7 @@ public class BeSocial {
             PreparedStatement dropProfile = conn.prepareStatement(
                 "DELETE FROM PROFILE WHERE EMAIL = ? CASCADE"
             );
-            dr.setString(1, name);
-            dr.setString(2, email);
-            dr.setString(3, password);
-            dr.setString(4, dob);
+            dropProfile.setString(1, email);
 
         } catch (Exception e) {
             

@@ -83,3 +83,41 @@ CREATE OR REPLACE TRIGGER updateGroup
     ON groupMember
     FOR EACH ROW
 EXECUTE FUNCTION update_group();
+
+-- Register new user
+
+CREATE OR REPLACE FUNCTION createProfile(userID int, name varchar(50), email varchar(50), password varchar(50), dob DATE, lastLogin TIMESTAMP)
+    RETURNS TRIGGER AS
+    $$
+    DECLARE 
+        newUserID int
+        curTime TIMESTAMP
+        maxID int := NULL;
+        
+    BEGIN
+        SELECT pseudo_time INTO curTime
+        FROM clock;
+
+        NEW.lastLogin = curTime;
+
+        SELECT MAX(userID)
+        INTO maxID
+        FROM profile;
+
+        -- if first user then initialize to 0
+        IF maxID IS NULL THEN
+            NEW.userID = 0;
+        ELSE
+            NEW.userID = maxID + 1;
+        END IF;
+
+        RETURN NEW;
+    END;
+    $$
+    
+
+CREATE OR REPLACE TRIGGER createNewProfile()
+    BEFORE INSERT
+    ON profile
+    FOR EACH ROW
+    EXECUTE FUNCTION createProfile()
