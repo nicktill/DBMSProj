@@ -1,5 +1,3 @@
-package Phase2;
-
 import java.util.Scanner;
 
 import java.sql.*;
