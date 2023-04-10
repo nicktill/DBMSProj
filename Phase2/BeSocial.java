@@ -1,3 +1,5 @@
+package Phase2;
+
 import java.util.Scanner;
 
 import java.sql.*;
@@ -31,7 +33,18 @@ public class BeSocial {
         props.setProperty("password", databasePassword);
         Connection conn = DriverManager.getConnection(url, props);
 
-        // Close the scanner at the end
-        sc.close();
+        System.out.println("Connection established");
+        System.out.println("Start BeSocial");
+
+        // Run the main program loop until the user exits 
+        try {
+            int userInput = -1;
+            while (userInput != 0) {
+
+            }
+        } catch (Exception e) {
+            sc.close();
+            System.out.println("End BeSocial");
+        }
     }
 }
