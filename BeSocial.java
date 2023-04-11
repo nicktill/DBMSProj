@@ -67,25 +67,66 @@ public class BeSocial {
                         createProfile(); 
                         break;
                     case 2:  
+                        login(); 
+                        isLoggedIn = true;
+                        break;
                     case 3: 
-                    case 4: 
+                        dropProfile(); 
+                        break;
+                    case 4:
+                        initiateFriendship();
+                        break;
                     case 5: 
+                        confirmFriendRequests();
+                        break;
                     case 6: 
+                        createGroup(); 
+                        break;
                     case 7: 
+                        initiateAddingGroup();
+                        break;
                     case 8:
+                        confirmGroupMembership();
+                        break;
                     case 9: 
+                        leaveGroup();
+                        break;
                     case 10: 
+                        searchForProfile();
+                        break;
                     case 11: 
+                        sendMessageToUser();
+                        break;
                     case 12: 
+                        sendMessageToGroup();
+                        break;
                     case 13: 
+                        displayMessages();
+                        break;
                     case 14: 
+                        displayNewMessages();
+                        break;
                     case 15: 
+                        displayFriends();
+                        break;
                     case 16: 
+                        rankGroups();
+                        break;
                     case 17:  
+                        rankProfiles();
+                        break;
                     case 18: 
+                        topMessages();
+                        break;
                     case 19: 
+                        threeDegrees();
+                        break;
                     case 20:
+                        logout();
+                        break;
                     case 21: 
+                        exit();
+                        break;
                 }
             }
         } catch (Exception e) {
@@ -99,6 +140,8 @@ public class BeSocial {
         conn.close();
     }
     
+
+    //case 1
     public static void login() {
         String username, password;
         System.out.print("Enter BeSocial username: ");
@@ -132,6 +175,7 @@ public class BeSocial {
         }
         
     }
+    //case 2
     public static void createProfile() {
         String name, email, password, dob; 
         System.out.print("Enter name: "); 
@@ -165,6 +209,7 @@ public class BeSocial {
         }
     }
 
+    //case 3
     public static void dropProfile() {
         String email; 
         System.out.print("Enter the email to drop profile for: ");
@@ -191,77 +236,93 @@ public class BeSocial {
         }
     }
 
-    // adding necesarry function headers: 
-
-    
+    //ADDING ALL FUNCTION HEADERS
+    // case 4
     public static void initiateFriendship(){
         // write code for initiateFriendship here
     }
 
+    // case 5
     public static void confirmFriendRequests(){
         // write code for confirmFriendRequests here
     }
 
+    // case 6
     public static void createGroup(){
         // write code for createGroup here
     }
 
+    // case 7
     public static void initiateAddingGroup(){
         // write code for initiateAddingGroup here
     }
-
+    
+    // case 8
     public static void confirmGroupMembership(){
         // write code for confirmGroupMembership here
     }
 
+    // case 9
     public static void leaveGroup(){
 
     }
 
+    // case 10
     public static void searchForProfile(){
         // write code for searchForProfile here
     }
     
+    // case 11
     public static void sendMessageToUser(){
         // write code for sendMessageToUser here
     }
     
+    // case 12
     public static void sendMessageToGroup(){
         // write code for sendMessageToGroup here
     }
     
+    // case 13
     public static void displayMessages(){
         // write code for displayMessages here
     }
     
+    // case 14
     public static void displayNewMessages(){
         // write code for displayNewMessages here
     }
     
+    // case 15
     public static void displayFriends(){
         // write code for displayFriends here
     }
     
+    // case 16
     public static void rankGroups(){
         // write code for rankGroups here
     }
     
+    // case 17
     public static void rankProfiles(){
         // write code for rankProfiles here
     }
-    
+
+    // case 18
     public static void topMessages(){
         // write code for topMessages here
     }
     
+    // case 19
     public static void threeDegrees(){
         // write code for threeDegrees here
     }
-    
+
+    // case 20
     public static void logout(){
         // write code for logout here
     }
     
+    // case 21
     public static void exit(){
         // write code for exit here
     }
