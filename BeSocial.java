@@ -122,7 +122,7 @@ public class BeSocial {
                         threeDegrees();
                         break;
                     case 20:
-                        logout();
+                        logout(userID, isLoggedIn);
                         break;
                     case 21: 
                         exit();
@@ -210,7 +210,8 @@ public class BeSocial {
     }
 
     //case 3
-    public static void dropProfile() {
+    public static void dropProfile() {  
+        // still needs to be checked by TA
         String email; 
         System.out.print("Enter the email to drop profile for: ");
         email = sc.nextLine(); 
@@ -232,7 +233,6 @@ public class BeSocial {
         } catch (Exception e) {
             // code to handle exception here
             System.out.println("Error caught in dropProfile function" + e.getMessage());
-            
         }
     }
 
@@ -318,13 +318,34 @@ public class BeSocial {
     }
 
     // case 20
-    public static void logout(){
-        // write code for logout here
-    }
-    
+    public static void logout(int userID, boolean isLoggedIn) {
+        System.out.println("Logging out...");
+        // grab current time somehow from clock value ?? (this is temporary for now )
+        String currentTime = "00-00-2023"; // insert time to currentTime (using placeholder for now)
+        try {
+            PreparedStatement logoutUpdate = conn.prepareStatement(
+                "UPDATE profile SET lastlogin = ? WHERE userID = ?"
+            );
+            logoutUpdate.setString(1, currentTime);
+            logoutUpdate.setInt(2, userID);
+            ResultSet rs = logoutUpdate.executeQuery();
+            if (rs.next() == false) {
+                System.out.println("Error logging out, please try again");
+            } else {
+                System.out.println("Successfully logged out");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error caught in logout function: " + e.getMessage());
+        }
+        isLoggedIn = false;  // update state varible loggedIn
+        System.out.println("Logged out successfully");  
+        }
+        
     // case 21
     public static void exit(){
-        // write code for exit here
+        // write code for exit here 
+        System.out.println("Exiting BeSocial... Goodbye!");
+        System.exit(0);
     }
-
 }
