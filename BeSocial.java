@@ -190,4 +190,80 @@ public class BeSocial {
             
         }
     }
+
+    // adding necesarry function headers: 
+
+    
+    public static void initiateFriendship(){
+        // write code for initiateFriendship here
+    }
+
+    public static void confirmFriendRequests(){
+        // write code for confirmFriendRequests here
+    }
+
+    public static void createGroup(){
+        // write code for createGroup here
+    }
+
+    public static void initiateAddingGroup(){
+        // write code for initiateAddingGroup here
+    }
+
+    public static void confirmGroupMembership(){
+        // write code for confirmGroupMembership here
+    }
+
+    public static void leaveGroup(){
+
+    }
+
+    public static void searchForProfile(){
+        // write code for searchForProfile here
+    }
+    
+    public static void sendMessageToUser(){
+        // write code for sendMessageToUser here
+    }
+    
+    public static void sendMessageToGroup(){
+        // write code for sendMessageToGroup here
+    }
+    
+    public static void displayMessages(){
+        // write code for displayMessages here
+    }
+    
+    public static void displayNewMessages(){
+        // write code for displayNewMessages here
+    }
+    
+    public static void displayFriends(){
+        // write code for displayFriends here
+    }
+    
+    public static void rankGroups(){
+        // write code for rankGroups here
+    }
+    
+    public static void rankProfiles(){
+        // write code for rankProfiles here
+    }
+    
+    public static void topMessages(){
+        // write code for topMessages here
+    }
+    
+    public static void threeDegrees(){
+        // write code for threeDegrees here
+    }
+    
+    public static void logout(){
+        // write code for logout here
+    }
+    
+    public static void exit(){
+        // write code for exit here
+    }
+
 }
