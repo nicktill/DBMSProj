@@ -145,7 +145,7 @@ public class BeSocial {
         conn.close();
     }
     
-    //case 1
+    // TODO CASE 1
     // * Given a name, email address, password and date of birth, add a new user to the system by
     // * inserting a new entry into the profile relation. userIDs should be auto-generated.
     public static void createProfile() {
@@ -180,7 +180,7 @@ public class BeSocial {
             System.out.println("Error caught in createProfile" + e.getMessage());
         }
     }
-        // * case 2
+        // TODO case 2
         // * This functions prompts for a user email and removes the profile along with all of their information from the system. When a profile is removed, the system should use a trigger to delete
         // * the user from the groups they are a member of. The system should also use a trigger to
         // * delete any message whose sender and all receivers are deleted. Attention should be paid to
