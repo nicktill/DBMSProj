@@ -152,24 +152,41 @@ public class BeSocial {
             createProfile.setString(4, dob);
 
            ResultSet rs = createProfile.executeQuery();
+              if (rs.next() == false) {
+                System.out.println("Error creating profile, please ensure you are entering a unique name, email, password, dob");
+              } else {
+                String confirmedEmail = rs.getString("email");
+                System.out.printf("Successfully created profile for Name:\n", name + "Email\n" + confirmedEmail);
+              }
         }
         catch (SQLException e){
-            // code to handle exception here
+            // print the error
+            System.out.println("Error caught in createProfile" + e.getMessage());
         }
     }
 
     public static void dropProfile() {
         String email; 
-        System.out.print("Enter the email to remove: ");
+        System.out.print("Enter the email to drop profile for: ");
         email = sc.nextLine(); 
 
         try{
+            // call delete from profile on specified email, cascade (to move other associated data)
             PreparedStatement dropProfile = conn.prepareStatement(
                 "DELETE FROM PROFILE WHERE EMAIL = ? CASCADE"
             );
-            dropProfile.setString(1, email);
+            dropProfile.setString(1, email); //set email as first parameter
+            ResultSet rs = dropProfile.executeQuery();
+            if (rs.next() == false) {
+                System.out.println("Unable to drop that profile, please ensure you are entering a valid email");
+            } else {
+                String confirmedEmail = rs.getString("email");
+                System.out.printf("Successfully dropped profioe for %s\n", confirmedEmail);
+            }
 
         } catch (Exception e) {
+            // code to handle exception here
+            System.out.println("Error caught in dropProfile function" + e.getMessage());
             
         }
     }
