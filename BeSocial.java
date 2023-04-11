@@ -287,8 +287,8 @@ public class BeSocial {
     // The application should move the selected request(s) from the pendingGroupMember relation
     // to the groupMember relation using the current time in Clock for the lastConfirmed timestamp.
     // If accepting a pending group membership request would exceed the group’s size, the accepted
-    // request should remain in pendingGroupMember.
-    // The remaining requests which were not selected are declined and removed from the pendingGroupMember relation.
+    // request should remain in pendingGroupMember. The remaining requests which were not selected 
+    // are declined and removed from the pendingGroupMember relation.
     // In the event that there are no pending group membership requests for any groups that the user
     // is a manager of, a message “No Pending Group Membership Requests” should be displayed to
     // the user. Furthermore, a message “No groups are currently managed” should be displayed if
@@ -302,11 +302,12 @@ public class BeSocial {
     // The application should remove the user from the group in the groupMember relation. Upon
     // removing the user from the group, you should use a trigger to check if there are pending
     // group membership requests in pendingGroupMember that were previously accepted, but could
-    // not be added due exceeding the group’s size, and move the earliest such request from the pendingGroupMember relation to the groupMember relation without changing the lastConfirmed
-    // timestamp.
+    // not be added due exceeding the group’s size, and move the earliest such request from the 
+    // pendingGroupMember relation to the groupMember relation without changing the lastConfirmed timestamp.
     // In the event that the user is not a member of the specified group, a message “Not a Member
     // of any Groups” should be displayed to the user.
     public static void leaveGroup(){
+        //wrote code for leaveGroup here
 
     }
 
