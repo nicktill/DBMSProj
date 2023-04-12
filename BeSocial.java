@@ -6,14 +6,22 @@ import org.postgresql.util.PSQLException;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
+/**
+ * Questions
+ *  - CASE 19 - Should this also be a admin only task since it requires userID? 
+ */
+
 import java.sql.*;
 import java.util.Properties;
 
 public class BeSocial {
-    public static Scanner sc;
-    public static Connection conn;
-    public static int userID;
-    public static boolean isLoggedIn;
+    private static Scanner sc;
+    private static Connection conn;
+    public static int userID = -1;
+    private static boolean isLoggedIn;
+    private static final int ADMIN_USER_ID = 0;
+    private static boolean isAdmin;
+    private static String userName;
 
     public static void main(String[] args) {
         sc = new Scanner(System.in);
@@ -39,6 +47,7 @@ public class BeSocial {
             Class.forName("org.postgresql.Driver");
             String url = "jdbc:postgresql://localhost:5432/";
             Properties props = new Properties();
+            props.setProperty("escapeSyntaxCallMode", "callIfNoReturn");
             props.setProperty("user", databaseUsername);
             props.setProperty("password", databasePassword);
             conn = DriverManager.getConnection(url, props);
@@ -62,6 +71,7 @@ public class BeSocial {
         try {
             int userInput = -1;
             isLoggedIn = false;
+            isAdmin = false;
             while (userInput != 0) {
                 displayMenu(isLoggedIn);
 
@@ -72,12 +82,14 @@ public class BeSocial {
                 // If the option they selected is invalid, print statement and continue to next
                 // loop
                 if (isLoggedIn) {
-                    if (userInput == 1 || userInput == 3) {
-                        System.out.println("This option is invalid for a logged in user");
+                    // If they are logged in and choose 3 or if they are not an admin and choose 1, it is invalid
+                    if (userInput == 3 || (!isAdmin && userInput == 1) || (!isAdmin && userInput == 2)) {
+                        System.out.println("This option is invalid");
                         continue;
                     }
                 } else {
-                    if (!(userInput == 1 || userInput == 3 || userInput == 21)) {
+                    // If they are not logged in, they can only choose login or exit
+                    if (!(userInput == 3 || userInput == 21)) {
                         System.out.println("This option is invalid for a user who is not logged in");
                         continue;
                     }
@@ -88,17 +100,17 @@ public class BeSocial {
                         createProfile();
                         break;
                     case 2:
-                        login();
-                        isLoggedIn = true;
+                        dropProfile();
                         break;
                     case 3:
-                        dropProfile();
+                        login();
+                        isLoggedIn = true;
                         break;
                     case 4:
                         initiateFriendship();
                         break;
                     case 5:
-                        confirmFriendRequests();
+                        confirmFriendRequests(userID);
                         break;
                     case 6:
                         createGroup();
@@ -179,6 +191,10 @@ public class BeSocial {
     // * inserting a new entry into the profile relation. userIDs should be
     // auto-generated.
     public static void createProfile() {
+        if (userID != ADMIN_USER_ID) {
+            System.out.println("This operation can only be performed by an admin");
+            return;
+        }
         // Get information from the user
         String name, email, password, dob;
         System.out.print("Enter name: ");
@@ -208,9 +224,9 @@ public class BeSocial {
 
             // Enforce transaction atomicity
             conn.setAutoCommit(false);
+            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             createProfile.executeUpdate();
             conn.commit();
-
             System.out.println("Profile created successfully!");
         } catch (SQLException e) {
             // If a SQLException occurs, try to roll back the transaction and if that fails, end the program
@@ -225,6 +241,7 @@ public class BeSocial {
             // No matter what, we need to set Auto Commit back to true
             try {
                 conn.setAutoCommit(true);
+                conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             } catch (SQLException e) {
                 // If another error occurs, just tank the program
                 System.out.println("Unexpected error occurred while setting auto commit back to false");
@@ -276,8 +293,12 @@ public class BeSocial {
 
         System.out.println("Input the number of the task you want to perform");
 
-        if (isLoggedIn) {
+        if (isAdmin) {
+            System.out.println("1 - Create Profile");
             System.out.println("2 - Drop Profile");
+        }
+
+        if (isLoggedIn) {
             System.out.println("4 - Initiate Friendship");
             System.out.println("5 - Confirm Friend Request(s)");
             System.out.println("6 - Create Group");
@@ -297,7 +318,6 @@ public class BeSocial {
             System.out.println("20 - Logout");
             System.out.println("21 - Exit");
         } else {
-            System.out.println("1 - Create Profile");
             System.out.println("3 - Login");
             System.out.println("21 - Exit");
         }
@@ -309,6 +329,10 @@ public class BeSocial {
     // * Given email and password, login as the user in the system when an
     // appropriate match is found.
     public static void dropProfile() {
+        if (userID != ADMIN_USER_ID) {
+            System.out.println("This operation can only be performed by an admin");
+            return;
+        }
         // still needs to be checked by TA
         String email;
         System.out.print("Enter the email to drop profile for: ");
@@ -345,7 +369,53 @@ public class BeSocial {
     // into the pendingFriend
     // * relation, and success or failure feedback is displayed for the user.
     public static void initiateFriendship() {
-        // * write code for initiateFriendship here
+        System.out.print("Enter the userID of the friend you want to request: ");
+        int toID = sc.nextInt();
+
+        // Get the user entry and confirm the operation with the user
+        try {
+            PreparedStatement statement = conn.prepareStatement(
+                "SELECT * FROM user WHERE userID = ?;"
+            );
+            statement.setInt(1, toID);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next() == false) {
+                System.out.println("This user does not exist");
+                return;
+            }
+            String name = rs.getString("name");
+            System.out.printf("You want to request a friendship with %s? (y/n): ", name);
+            char ans = sc.nextLine().toLowerCase().charAt(0);
+            if (ans == 'n') {
+                System.out.println("Okay. This user will not be added");
+                return;
+            }
+        } catch (SQLException e) {
+            printErrors(e);
+        }
+
+        // Now actually insert the pending friendship
+        System.out.println("What would you like your request to say?: ");
+        String req = sc.nextLine();
+        req = req.substring(0, Math.min(req.length(), 200));
+        try {
+            CallableStatement func = conn.prepareCall("{ ? = call addFriendRequest(?, ?, ?) }");
+            func.setInt(1, userID);
+            func.setInt(2, toID);
+            func.registerOutParameter(1, Types.BOOLEAN);
+            func.execute();
+
+            boolean result = func.getBoolean(1);
+            func.close();
+
+            if (result) {
+                System.out.println("Successfully added friendship!");
+            } else {
+                System.out.println("Could not add the user. Try again.");
+            }
+        } catch (SQLException e) {
+            printErrors(e);
+        }
     }
 
     // TODO CASE 5
@@ -363,8 +433,27 @@ public class BeSocial {
     // * In the event that the user has no pending friend requests, a message “No
     // Pending Friend
     // * Requests” should be displayed to the user.
-    public static void confirmFriendRequests() {
-        // * write code for confirmFriendRequests here
+    public static void confirmFriendRequests(int userID) {
+        try{
+            String query = "SELECT * FROM listPendingFriends(?);";
+            PreparedStatement statement = conn.prepareStatement(query);
+            statement.setInt(1, userID);
+
+            // Execute the query and process the results
+            ResultSet rs = statement.executeQuery();
+            int i = 1;
+            while (rs.next()) {
+                String requestText = rs.getString("requestText");
+                int pendingFromID = rs.getInt("toID");
+                System.out.println(i + "." +  userID + "\t" + requestText + pendingFromID); //1. UserID: ID,  requestText: requestTExt
+                i++;
+            }
+        }
+      catch (SQLException e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+
     }
 
     // TODO CASE 6
@@ -373,7 +462,81 @@ public class BeSocial {
     // * add the current user as its first member with the role manager. gIDs should
     // be auto-generated.
     public static void createGroup() {
-        // * write code for createGroup here
+        System.out.print("Enter the group name: ");
+        String name = sc.nextLine();
+
+        System.out.println("Enter the group description (optional): ");
+        String groupDescription = sc.nextLine();
+
+        System.out.println("Enter the group membership limit (default 10): ");
+        int membershipLimit = Integer.parseInt(sc.nextLine());
+        
+        try {
+            
+            // Make sure it is atomic so that there can be no race condition in making the gID
+            conn.setAutoCommit(false);
+            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+
+            // Generate a group ID
+            Statement st = conn.createStatement();
+            String query = "SELECT MAX(gID) FROM groupInfo";
+            ResultSet res = st.executeQuery(query);
+            conn.commit();
+
+            // Get the gID from the query
+            int gID = 0;
+            while (res.next()) {
+                gID = res.getInt("gID");
+            }
+            if (res.wasNull()) {
+                gID = 0;
+            } else {
+                gID += 1;
+            }
+            
+            // Commented out rn but just incase for later
+            //ResultSet res1 = st.executeQuery("SET CONSTRAINTS ALL DEFERRED");
+            
+            // Create Group
+            PreparedStatement createGroup = conn.prepareStatement(
+                        "INSERT INTO groupInfo VALUES(?, ? , ? , ?);");
+            createGroup.setInt(1, gID);
+            createGroup.setString(2, name);
+            createGroup.setString(3, groupDescription);
+            createGroup.setInt(4, membershipLimit);
+            createGroup.executeUpdate();
+
+            // Insert User -- Need to make trigger to add timestamp?
+            PreparedStatement createGroupMember = conn.prepareStatement(
+                        "INSERT INTO groupMember VALUES(?, ? , ? , ?);");
+            createGroupMember.setInt(1, gID);
+            createGroupMember.setInt(2, userID);
+            createGroupMember.setString(3, "manager");
+            createGroup.executeUpdate();
+
+            // Commit both at once - chicken and egg
+            conn.commit();
+            System.out.println("Group created successfully!");
+        } catch (SQLException e) {
+            // If a SQLException occurs, try to roll back the transaction and if that fails, end the program
+            System.out.println("An error occurred adding a profile to the table");
+            try {
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("An error occurred while rolling back the transaction");
+                endProgram();
+            }
+        } finally {
+            // No matter what, we need to set Auto Commit back to true
+            try {
+                conn.setAutoCommit(true);
+                conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            } catch (SQLException e) {
+                // If another error occurs, just tank the program
+                System.out.println("Unexpected error occurred while setting auto commit back to false");
+                endProgram();
+            }
+        }
     }
 
     // TODO CASE 7
@@ -544,6 +707,7 @@ public class BeSocial {
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
                 "GROUP BY g.gID, g.name " +
                 "ORDER BY member_count DESC, g.gID";
+    
         try {
             PreparedStatement rankGroups = conn.prepareStatement(rankGroupsStatement);
             ResultSet rs = rankGroups.executeQuery();
@@ -629,5 +793,12 @@ public class BeSocial {
         // write code for exit here
         System.out.println("Exiting BeSocial... Goodbye!");
         System.exit(0);
+    }
+
+    private static void printErrors(SQLException e) {
+        System.out.println(e.getMessage());
+        while ((e = e.getNextException()) != null) {
+            System.out.println(e.getMessage());
+        }
     }
 }

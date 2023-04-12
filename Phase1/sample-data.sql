@@ -1,8 +1,8 @@
 -- Sample data file for group 4's DBMS Final Project
 
 -- Generate 100 Profiles
-INSERT INTO profile VALUES(0, 'Anthony Stout', 'stevenwilliams@gmail.com', '#8oQ0XXHt$', '2011-12-13', '2012-03-14 22:18:59');
-INSERT INTO profile VALUES(1, 'Stephanie Brown', 'luis47@yahoo.com', '@LY5GZUfEN', '1963-01-09', '1986-11-19 04:29:51');
+INSERT INTO profile VALUES(0, 'admin', 'admin@besocial.com', 'admin', '2000-01-01', '2022-01-01 00:00:00');
+INSERT INTO profile VALUES(1, 'Nicholas Tillmann', 'ntillmann1439@gmail.com', 'pass', '2000-08-12', '1986-11-19 04:29:51');
 INSERT INTO profile VALUES(2, 'Megan Vasquez', 'hpotter@yahoo.com', '$+4H)xxSxc', '1944-04-21', '1982-05-29 10:11:48');
 INSERT INTO profile VALUES(3, 'Vanessa Armstrong', 'donnacabrera@yahoo.com', 'O$Oc9VEhgy', '1943-08-22', '1972-06-14 08:57:12');
 INSERT INTO profile VALUES(4, 'Nicholas Dyer', 'amy00@yahoo.com', '$$7xXS#nO)', '1954-12-29', '1997-04-22 18:08:34');

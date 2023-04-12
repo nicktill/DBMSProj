@@ -149,4 +149,62 @@ CREATE OR REPLACE TRIGGER incrementUserID
     ON profile
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
-EXECUTE FUNCTION createProfile();
+
+CREATE OR REPLACE FUNCTION confirmFriendRequests()
+    RETURNS VOID $$
+    $$ LANGUAGE plpgsql;
+
+-- ! WORK IN PROGRESS
+CREATE OR REPLACE FUNCTION listPendingFriends(int userID)
+    RETURNS SETOF pendingFriend 
+    AS
+$$
+BEGIN
+    RETURN QUERY SELECT requestText FROM pendingFriend WHERE toID = userID;
+END;
+$$ LANGUAGE plpgsql;
+-- ! WORK IN PROGRESS
+
+CREATE OR REPLACE FUNCTION addFriendRequest(from INT, to INT, text VARCHAR(200))
+RETURNS BOOLEAN AS
+$$
+DECLARE
+
+BEGIN
+    IF text IS NOT NULL THEN
+        INSERT INTO pendingFriend VALUES (from, to);
+    ELSE
+        INSERT INTO pendingFriend VALUES (from, to, text);
+    END IF;
+    
+    RETURN TRUE;
+
+    EXCEPTION WHEN OTHERS THEN
+        RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Change timestamp in groupMember for new insert
+
+CREATE OR REPLACE FUNCTION createMember()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    curTime TIMESTAMP;
+BEGIN
+    SELECT pseudo_time
+    INTO curTime
+    FROM clock;
+
+    NEW.lastConfirmed = curTime;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE TRIGGER createNewMember
+    BEFORE INSERT
+    ON groupMember
+    FOR EACH ROW
+    EXECUTE FUNCTION createMember();

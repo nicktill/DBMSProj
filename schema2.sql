@@ -87,7 +87,8 @@ CREATE TABLE groupMember (
     lastConfirmed   TIMESTAMP NOT NULL, -- The system should never have a NULL value for this
 
     -- Constraints
-    CONSTRAINT PK_groupMember PRIMARY KEY (gID, userID),
+    CONSTRAINT PK_groupMember PRIMARY KEY (gID, userID)
+        INITIALLY IMMEDIATE DEFERRABLE,
     -- When a group is deleted, the group member entries should be deleted since
     -- since the group no longer exists
     CONSTRAINT FK1_groupMember FOREIGN KEY (gID) REFERENCES groupInfo(gID)
