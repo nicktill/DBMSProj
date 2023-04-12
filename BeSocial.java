@@ -2,8 +2,6 @@ import java.util.Scanner;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.postgresql.util.PSQLException;
 
@@ -217,7 +215,7 @@ public class BeSocial {
         System.out.print("Enter password: ");
         password = sc.nextLine();
         try {
-            String qry = "SELECT * FROM profile WHERE name=? AND password=?;"; // TODO: Possibly
+            String qry = "SELECT * FROM profile WHERE name=? AND password=?;"; 
             PreparedStatement loginQuery = conn.prepareStatement(qry);
             loginQuery.setString(1, username);
             loginQuery.setString(2, password);

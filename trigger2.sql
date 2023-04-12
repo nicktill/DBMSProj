@@ -13,6 +13,11 @@ DECLARE
     rec_groupMember groupmember%ROWTYPE;
 
 BEGIN
+    -- If both toUserID and gid are both null throw an exception
+    IF NEW.touserid IS NULL AND NEW.togroupid IS NULL THEN
+        RAISE EXCEPTION 'A message must be sent to a user or group' USING ERRCODE '00001';
+    END IF;
+
     -- toUserID and toGroupID are mutually exclusive amongst each other
     IF NEW.touserid IS NOT NULL THEN
         -- If the message was sent to a user, add the message recipient entry
@@ -120,4 +125,33 @@ CREATE OR REPLACE TRIGGER createNewProfile()
     BEFORE INSERT
     ON profile
     FOR EACH ROW
-    EXECUTE FUNCTION createProfile()
+    EXECUTE FUNCTION createProfile();
+
+-- Trigger to make sure profile IDs keep increasing by 1
+
+-- We want to make sure that the profile ID's will be the next highest integer available
+CREATE OR REPLACE FUNCTION increment_pid()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    maxID int := NULL;
+BEGIN
+    SELECT MAX(userID)
+    INTO maxID
+    FROM profile;
+
+    IF maxID IS NULL THEN
+        NEW.userID = 0;
+    ELSE
+        NEW.userID = maxID + 1;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER incrementUserID
+    BEFORE INSERT
+    ON profile
+    FOR EACH ROW
+EXECUTE FUNCTION increment_pid();
