@@ -1,11 +1,7 @@
 import java.util.Scanner;
-<<<<<<< HEAD
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-=======
->>>>>>> 5ce9c7b25900bfe0436bc8259cf7668a92de13eb
-
 import org.postgresql.util.PSQLException;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
@@ -204,7 +200,7 @@ public class BeSocial {
              * We also have a database-side trigger to inser the max time from the clock into lastlogin.
              */
             PreparedStatement createProfile = conn.prepareStatement(
-                    "INSERT INTO profile VALUES(NULL, ? , ? , ? , ?, NULL)");
+                    "INSERT INTO profile VALUES(NULL, ? , ? , ? , ?, NULL);");
             createProfile.setString(1, name);
             createProfile.setString(2, email);
             createProfile.setString(3, password);
