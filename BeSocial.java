@@ -1,9 +1,4 @@
 import java.util.Scanner;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import org.postgresql.util.PSQLException;
 
@@ -16,8 +11,9 @@ public class BeSocial {
     public static Scanner sc;
     public static Connection conn;
     public static int userID;
+    public static boolean isLoggedIn;
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException, InterruptedException {
+    public static void main(String[] args) {
         sc = new Scanner(System.in);
 
         String databaseUsername = null;
@@ -63,12 +59,12 @@ public class BeSocial {
         // Run the main program loop until the user exits
         try {
             int userInput = -1;
-            boolean isLoggedIn = true;
+            isLoggedIn = false;
             while (userInput != 0) {
                 displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
-                userInput = sc.nextInt();
+                userInput = Integer.parseInt(sc.nextLine());
 
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
@@ -153,14 +149,26 @@ public class BeSocial {
                 }
             }
         } catch (Exception e) {
-            sc.close();
-            conn.close();
-            System.out.println("End BeSocial");
+            endProgram();
         }
 
         System.out.println("Thank you for using BeSocial");
+        endProgram();
+    }
+
+    /**
+     * Helper Method that closes the DB Connection, closes the scanner, and ends the program
+     */
+    private static void endProgram() {
+        System.out.println("Ending program");
+
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            System.out.println("Error closing DB connection");
+        }
         sc.close();
-        conn.close();
+        System.exit(0);
     }
 
     // TODO CASE 1
@@ -169,35 +177,57 @@ public class BeSocial {
     // * inserting a new entry into the profile relation. userIDs should be
     // auto-generated.
     public static void createProfile() {
+        // Get information from the user
         String name, email, password, dob;
         System.out.print("Enter name: ");
         name = sc.nextLine();
+
         System.out.print("Enter email: ");
         email = sc.nextLine();
+
         System.out.print("Enter Password: ");
         password = sc.nextLine();
-        System.out.print("Enter DOB in format 'MM-DD-YYYY");
+
+        System.out.print("Enter DOB in format 'YYYY-MM-DD': ");
         dob = sc.nextLine();
 
         try {
+            /*
+             * The Profile Schema is Profile (userID, name, email, password, date_of_birth, lastlogin)
+             * We have a database-side trigger to give a user an ID so we can leave it as -1.
+             * We also have a database-side trigger to inser the max time from the clock into lastlogin.
+             */
             PreparedStatement createProfile = conn.prepareStatement(
-                    "INSERT INTO profile VALUES(-1, ? , ? , ? , ?, -1)");
+                    "INSERT INTO profile VALUES(NULL, ? , ? , ? , ?, NULL)");
             createProfile.setString(1, name);
             createProfile.setString(2, email);
             createProfile.setString(3, password);
-            createProfile.setString(4, dob);
+            createProfile.setDate(4, Date.valueOf(dob));
 
-            ResultSet rs = createProfile.executeQuery();
-            if (rs.next() == false) {
-                System.out.println(
-                        "Error creating profile, please ensure you are entering a unique name, email, password, dob");
-            } else {
-                String confirmedEmail = rs.getString("email");
-                System.out.printf("Successfully created profile for Name:\n", name + "Email\n" + confirmedEmail);
-            }
+            // Enforce transaction atomicity
+            conn.setAutoCommit(false);
+            createProfile.executeUpdate();
+            conn.commit();
+
+            System.out.println("Profile created successfully!");
         } catch (SQLException e) {
-            // print the error
-            System.out.println("Error caught in createProfile" + e.getMessage());
+            // If a SQLException occurs, try to roll back the transaction and if that fails, end the program
+            System.out.println("An error occurred adding a profile to the table");
+            try {
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("An error occurred while rolling back the transaction");
+                endProgram();
+            }
+        } finally {
+            // No matter what, we need to set Auto Commit back to true
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                // If another error occurs, just tank the program
+                System.out.println("Unexpected error occurred while setting auto commit back to false");
+                endProgram();
+            }
         }
     }
 
