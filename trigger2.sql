@@ -25,9 +25,9 @@ BEGIN
     ELSE
         -- If the message was sent to a group, add entries for each groupMember
         FOR rec_groupMember IN SELECT * FROM groupmember WHERE gid = NEW.togroupid AND NEW.fromid != groupmember.userid
-        LOOP
-            INSERT INTO messagerecipient VALUES (new.msgid, rec_groupMember.userid);
-        END LOOP;
+            LOOP
+                INSERT INTO messagerecipient VALUES (new.msgid, rec_groupMember.userid);
+            END LOOP;
     END IF;
 
     RETURN NEW; -- Regardless, return new to signify to the trigger that there were no errors
@@ -48,36 +48,43 @@ CREATE OR REPLACE FUNCTION update_group()
     RETURNS TRIGGER AS
 $$
 DECLARE
-    maxLast TIMESTAMP;
+    maxLast     TIMESTAMP;
     rec_pending pendinggroupmember%ROWTYPE;
-    groupSize INT := 0;
-    curSize INT := 0;
-    curTime TIMESTAMP;
+    groupSize   INT := 0;
+    curSize     INT := 0;
+    curTime     TIMESTAMP;
 
 BEGIN
-    SELECT COUNT(userID) INTO curSize
+    SELECT COUNT(userID)
+    INTO curSize
     FROM groupMember
     WHERE gID = NEW.gID;
 
-    SELECT MAX(lastConfirmed) INTO maxLast
+    SELECT MAX(lastConfirmed)
+    INTO maxLast
     FROM groupmember
     WHERE gid = OLD.gid;
 
-    SELECT size INTO groupSize
+    SELECT size
+    INTO groupSize
     FROM groupinfo
     WHERE gid = OLD.gid;
 
-    SELECT pseudo_time INTO curTime
+    SELECT pseudo_time
+    INTO curTime
     FROM clock;
 
-    FOR rec_pending IN SELECT * FROM pendinggroupmember WHERE gid = OLD.gid AND requesttime <= maxLast ORDER BY requesttime
-    LOOP
-        IF curSize < groupSize THEN
-            INSERT INTO groupmember VALUES (rec_pending.gid, rec_pending.userid, 'member', curTime);
-            DELETE FROM pendinggroupmember WHERE gid = rec_pending.gid AND userid = rec_pending.userid;
-            curSize := curSize + 1;
-        END IF;
-    END LOOP;
+    FOR rec_pending IN SELECT *
+                       FROM pendinggroupmember
+                       WHERE gid = OLD.gid AND requesttime <= maxLast
+                       ORDER BY requesttime
+        LOOP
+            IF curSize < groupSize THEN
+                INSERT INTO groupmember VALUES (rec_pending.gid, rec_pending.userid, 'member', curTime);
+                DELETE FROM pendinggroupmember WHERE gid = rec_pending.gid AND userid = rec_pending.userid;
+                curSize := curSize + 1;
+            END IF;
+        END LOOP;
     RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
@@ -91,37 +98,24 @@ EXECUTE FUNCTION update_group();
 
 -- Register new user
 
-CREATE OR REPLACE FUNCTION createProfile(userID int, name varchar(50), email varchar(50), password varchar(50), dob DATE, lastLogin TIMESTAMP)
+CREATE OR REPLACE FUNCTION createProfile()
     RETURNS TRIGGER AS
-    $$
-    DECLARE 
-        newUserID int
-        curTime TIMESTAMP
-        maxID int := NULL;
-        
-    BEGIN
-        SELECT pseudo_time INTO curTime
-        FROM clock;
+$$
+DECLARE
+    curTime TIMESTAMP;
+BEGIN
+    SELECT pseudo_time
+    INTO curTime
+    FROM clock;
 
-        NEW.lastLogin = curTime;
+    NEW.lastlogin = curTime;
 
-        SELECT MAX(userID)
-        INTO maxID
-        FROM profile;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-        -- if first user then initialize to 0
-        IF maxID IS NULL THEN
-            NEW.userID = 0;
-        ELSE
-            NEW.userID = maxID + 1;
-        END IF;
 
-        RETURN NEW;
-    END;
-    $$
-    
-
-CREATE OR REPLACE TRIGGER createNewProfile()
+CREATE OR REPLACE TRIGGER createNewProfile
     BEFORE INSERT
     ON profile
     FOR EACH ROW
@@ -155,3 +149,4 @@ CREATE OR REPLACE TRIGGER incrementUserID
     ON profile
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
+EXECUTE FUNCTION createProfile();
