@@ -331,7 +331,7 @@ public class BeSocial {
             System.out.println("8 - Confirm Group Member");
             System.out.println("9 - Leave Group");
             System.out.println("10 - Search For Profile");
-            System.out.println("11 - Send Messgae To User");
+            System.out.println("11 - Send Message To User");
             System.out.println("12 - Send Message To Group");
             System.out.println("13 - Display Messages");
             System.out.println("14 - Display New Messages");
@@ -492,14 +492,25 @@ public class BeSocial {
     // * add the current user as its first member with the role manager. gIDs should
     // be auto-generated.
     public static void createGroup() {
-        System.out.print("Enter the group name: ");
+        System.out.print("Enter the group name (50 characters or less): ");
         String name = sc.nextLine();
+        while (name.isEmpty() || name.length() > 50) {
+            System.out.print("Enter a valid group name: ");
+            name = sc.nextLine();
+        }
 
-        System.out.println("Enter the group description (optional): ");
+        System.out.println("Enter the group description (optional) (200 characters or less): ");
         String groupDescription = sc.nextLine();
+        while (groupDescription.length() > 200) {
+            System.out.print("Enter a valid group description: ");
+            groupDescription = sc.nextLine();
+        }
 
         System.out.println("Enter the group membership limit (default 10): ");
-        int membershipLimit = Integer.parseInt(sc.nextLine());
+        int membershipLimit = 10;
+        try {
+            membershipLimit = Integer.parseInt(sc.nextLine());
+        } catch (Exception e) {}
         
         try {
             
@@ -509,47 +520,38 @@ public class BeSocial {
 
             // Generate a group ID
             Statement st = conn.createStatement();
-            String query = "SELECT MAX(gID) FROM groupInfo";
+            String query = "SELECT MAX(gID) AS max_gID FROM groupInfo;";
             ResultSet res = st.executeQuery(query);
             conn.commit();
 
             // Get the gID from the query
-            int gID = 0;
-            while (res.next()) {
-                gID = res.getInt("gID");
-            }
+            res.next();
+            int gID = res.getInt("max_gID");
             if (res.wasNull()) {
                 gID = 0;
             } else {
                 gID += 1;
             }
             
-            // Commented out rn but just incase for later
-            //ResultSet res1 = st.executeQuery("SET CONSTRAINTS ALL DEFERRED");
-            
             // Create Group
             PreparedStatement createGroup = conn.prepareStatement(
                         "INSERT INTO groupInfo VALUES(?, ? , ? , ?);");
             createGroup.setInt(1, gID);
             createGroup.setString(2, name);
-            createGroup.setString(3, groupDescription);
-            createGroup.setInt(4, membershipLimit);
+            createGroup.setInt(3, membershipLimit);
+            createGroup.setString(4, groupDescription);
             createGroup.executeUpdate();
 
-            // Insert User -- Need to make trigger to add timestamp?
-            PreparedStatement createGroupMember = conn.prepareStatement(
-                        "INSERT INTO groupMember VALUES(?, ? , ? , ?);");
-            createGroupMember.setInt(1, gID);
-            createGroupMember.setInt(2, userID);
-            createGroupMember.setString(3, "manager");
-            createGroup.executeUpdate();
+            String createGroupMemberQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, '%s', NULL);", gID, userID, "manager");
+            st.executeUpdate(createGroupMemberQuery);
 
             // Commit both at once - chicken and egg
             conn.commit();
             System.out.println("Group created successfully!");
         } catch (SQLException e) {
             // If a SQLException occurs, try to roll back the transaction and if that fails, end the program
-            System.out.println("An error occurred adding a profile to the table");
+            System.out.println("An error occurred adding a group to the table");
+            System.out.println(e);
             try {
                 conn.rollback();
             } catch (SQLException e2) {
@@ -826,7 +828,7 @@ public class BeSocial {
     public static void exit() {
         // write code for exit here
         System.out.println("Exiting BeSocial... Goodbye!");
-        System.exit(0);
+        endProgram();
     }
 
     private static void printErrors(SQLException e) {
