@@ -15,7 +15,7 @@ DECLARE
 BEGIN
     -- If both toUserID and gid are both null throw an exception
     IF NEW.touserid IS NULL AND NEW.togroupid IS NULL THEN
-        RAISE EXCEPTION 'A message must be sent to a user or group' USING ERRCODE '00001';
+        RAISE EXCEPTION 'A message must be sent to a user or group' USING ERRCODE = '00001';
     END IF;
 
     -- toUserID and toGroupID are mutually exclusive amongst each other
@@ -150,10 +150,12 @@ CREATE OR REPLACE TRIGGER incrementUserID
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
 
+/*
 CREATE OR REPLACE FUNCTION confirmFriendRequests()
     RETURNS VOID $$
     $$ LANGUAGE plpgsql;
-
+*/
+/*
 -- ! WORK IN PROGRESS
 CREATE OR REPLACE FUNCTION listPendingFriends(int userID)
     RETURNS SETOF pendingFriend 
@@ -164,7 +166,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 -- ! WORK IN PROGRESS
-
+*/
+/*
 CREATE OR REPLACE FUNCTION addFriendRequest(from INT, to INT, text VARCHAR(200))
 RETURNS BOOLEAN AS
 $$
@@ -183,6 +186,8 @@ BEGIN
         RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
+
+ */
 
 -- Change timestamp in groupMember for new insert
 
