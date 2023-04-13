@@ -1,4 +1,6 @@
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -20,7 +22,6 @@ public class BeSocial {
     public static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
-    private static boolean isAdmin;
     private static String userName;
 
     public static void main(String[] args) {
@@ -71,7 +72,6 @@ public class BeSocial {
         try {
             int userInput = -1;
             isLoggedIn = false;
-            isAdmin = false;
             while (userInput != 0) {
                 displayMenu(isLoggedIn);
 
@@ -83,9 +83,12 @@ public class BeSocial {
                 // loop
                 if (isLoggedIn) {
                     // If they are logged in and choose 3 or if they are not an admin and choose 1, it is invalid
-                    if (userInput == 3 || (!isAdmin && userInput == 1) || (!isAdmin && userInput == 2)) {
-                        System.out.println("This option is invalid");
+                    if (userInput == 3) {
+                        System.out.println("This option is invalid for logged in users");
                         continue;
+                    }
+                    if ((!(userID == ADMIN_USER_ID) && userInput == 1) || (!(userID == ADMIN_USER_ID) && userInput == 2)) {
+                        System.out.println("You do not have permission to perform this operation.");
                     }
                 } else {
                     // If they are not logged in, they can only choose login or exit
@@ -199,15 +202,41 @@ public class BeSocial {
         String name, email, password, dob;
         System.out.print("Enter name: ");
         name = sc.nextLine();
+        while (name.isEmpty()) {
+            System.out.print("You must enter a name: ");
+            name = sc.nextLine();
+        }
+
+        String emailRegex = "^(.+)@(\\S+)$";
+        Pattern pat= Pattern.compile(emailRegex);
 
         System.out.print("Enter email: ");
         email = sc.nextLine();
+        Matcher match = pat.matcher(email);
+        while (email.isEmpty() || !match.matches()) {
+            System.out.print("You must enter a valid email: ");
+            email = sc.nextLine();
+            match = pat.matcher(email);
+        }
 
         System.out.print("Enter Password: ");
         password = sc.nextLine();
+        while (password.isEmpty()) {
+            System.out.print("You must enter a password: ");
+            password = sc.nextLine();
+        }
+
+        String dobRegex = "^((19|2[0-9])[0-9]{2})-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$";
+        Pattern pattern = Pattern.compile(dobRegex);
 
         System.out.print("Enter DOB in format 'YYYY-MM-DD': ");
         dob = sc.nextLine();
+        Matcher matcher = pattern.matcher(dob);
+        while (dob.isEmpty() || !matcher.matches()) {
+            System.out.print("You must enter a DOB format in 'YYYY-MM-DD': ");
+            dob = sc.nextLine();
+            matcher = pattern.matcher(dob);
+        }
 
         try {
             /*
@@ -250,15 +279,9 @@ public class BeSocial {
         }
     }
 
-    // TODO case 2
-    // * This functions prompts for a user email and removes the profile along with
-    // all of their information from the system. When a profile is removed, the
-    // system should use a trigger to delete
-    // * the user from the groups they are a member of. The system should also use a
-    // trigger to
-    // * delete any message whose sender and all receivers are deleted. Attention
-    // should be paid to
-    // * handling integrity constraints.
+    // TODO: CASE 3
+    // * Given email and password, login as the user in the system when an
+    // appropriate match is found.
     public static void login() {
         String username, password;
         System.out.print("Enter BeSocial username: ");
@@ -293,7 +316,8 @@ public class BeSocial {
 
         System.out.println("Input the number of the task you want to perform");
 
-        if (isAdmin) {
+        // Admin has user ID 0
+        if (userID == ADMIN_USER_ID) {
             System.out.println("1 - Create Profile");
             System.out.println("2 - Drop Profile");
         }
@@ -325,9 +349,15 @@ public class BeSocial {
         System.out.println("------------------------------------------------------");
     }
 
-    // TODO: CASE 3
-    // * Given email and password, login as the user in the system when an
-    // appropriate match is found.
+    // TODO case 2
+    // * This functions prompts for a user email and removes the profile along with
+    // all of their information from the system. When a profile is removed, the
+    // system should use a trigger to delete
+    // * the user from the groups they are a member of. The system should also use a
+    // trigger to
+    // * delete any message whose sender and all receivers are deleted. Attention
+    // should be paid to
+    // * handling integrity constraints.
     public static void dropProfile() {
         if (userID != ADMIN_USER_ID) {
             System.out.println("This operation can only be performed by an admin");
@@ -342,14 +372,14 @@ public class BeSocial {
             // call delete from profile on specified email, cascade (to move other
             // associated data)
             PreparedStatement dropProfile = conn.prepareStatement(
-                    "DELETE FROM PROFILE WHERE EMAIL = ? CASCADE");
+                    "DELETE FROM PROFILE WHERE EMAIL = ? CASCADE;");
             dropProfile.setString(1, email); // set email as first parameter
             ResultSet rs = dropProfile.executeQuery();
             if (rs.next() == false) {
                 System.out.println("Unable to drop that profile, please ensure you are entering a valid email");
             } else {
                 String confirmedEmail = rs.getString("email");
-                System.out.printf("Successfully dropped profioe for %s\n", confirmedEmail);
+                System.out.printf("Successfully dropped profile for %s\n", confirmedEmail);
             }
 
         } catch (Exception e) {
