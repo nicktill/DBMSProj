@@ -299,6 +299,7 @@ public class BeSocial {
                 System.out.println("Could not log in user, please try again.");
             } else {
                 userID = rs.getInt("userID");
+                userName = rs.getString("name");
                 System.out.printf("Successfully logged in as %s\n", username);
                 isLoggedIn = true;
             }
