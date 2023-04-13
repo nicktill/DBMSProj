@@ -23,7 +23,7 @@ public class BeSocial {
     public static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
-    private static String userName;
+    private static String userName = null;
 
     public static void main(String[] args) {
         sc = new Scanner(System.in);
@@ -462,9 +462,9 @@ public class BeSocial {
     // * friend relation with JDate set to the current date of the Clock table.
     // * The remaining requests which were not selected are declined and removed
     // from the pendingFriend relation.
-    // * In the event that the user has no pending friend requests, a message “No
+    // * In the event that the user has no pending friend requests, a message No
     // Pending Friend
-    // * Requests” should be displayed to the user.
+    // * Requests should be displayed to the user.
     public static void confirmFriendRequests(int userID) {
         try{
             String query = "SELECT * FROM listPendingFriends(?);";
@@ -574,7 +574,7 @@ public class BeSocial {
     }
 
     // TODO CASE 7
-    // * Given a group ID and the request’s text, create a pending request of adding
+    // * Given a group ID and the request's text, create a pending request of adding
     // the logged-in user
     // * to the group by inserting a new entry into the pendingGroupMember relation.
     public static void initiateAddingGroup() {
@@ -609,16 +609,16 @@ public class BeSocial {
     // pendingGroupMember relation
     // * to the groupMember relation using the current time in Clock for the
     // lastConfirmed timestamp.
-    // * If accepting a pending group membership request would exceed the group’s
+    // * If accepting a pending group membership request would exceed the group's
     // size, the accepted
     // * request should remain in pendingGroupMember. The remaining requests which
     // were not selected
     // * are declined and removed from the pendingGroupMember relation.
     // * In the event that there are no pending group membership requests for any
     // groups that the user
-    // * is a manager of, a message “No Pending Group Membership Requests” should be
+    // * is a manager of, a message No Pending Group Membership Requests should be
     // displayed to
-    // * the user. Furthermore, a message “No groups are currently managed” should
+    // * the user. Furthermore, a message No groups are currently managed should
     // be displayed if
     // * the user is not a manager of any groups.
     public static void confirmGroupMembership() {
@@ -634,13 +634,13 @@ public class BeSocial {
     // there are pending
     // * group membership requests in pendingGroupMember that were previously
     // accepted, but could
-    // * not be added due exceeding the group’s size, and move the earliest such
+    // * not be added due exceeding the group's size, and move the earliest such
     // request from the
     // * pendingGroupMember relation to the groupMember relation without changing
     // the lastConfirmed timestamp.
     // * In the event that the user is not a member of the specified group, a
-    // message “Not a Member
-    // * of any Groups” should be displayed to the user.
+    // message Not a Member
+    // * of any Groups should be displayed to the user.
     public static void leaveGroup() {
         // *wrote code for leaveGroup here
 
@@ -649,23 +649,23 @@ public class BeSocial {
     // TODO CASE 10
     // * Given a string on which to match any user profile in the system, any item
     // in this string must be
-    // * matched against the “name” and “email” fields of a user’s profile. That is
+    // * matched against the name and email fields of a user's profile. That is
     // if the user searches
-    // * for “xyz abc”, the results should be the set of all user profiles that have
-    // “xyz” in their “name”
-    // * or “email” union the set of all user profiles that have “abc” in their
-    // “name” or “email”.
+    // * for xyz abc, the results should be the set of all user profiles that have
+    // xyz in their name
+    // * or email union the set of all user profiles that have abc in their
+    // name or email.
     public static void searchForProfile() {
         // * write code for searchForProfile here
     }
 
     // TODO CASE 11
-    // * With this the user can send a message to one friend given the friend’s
+    // * With this the user can send a message to one friend given the friend's
     // userID. The application
     // * should display the name of the recipient and the user should be prompted to
     // enter the body
     // * of the message, which could be multi-lined. Once entered, the application
-    // should “send” the
+    // should send the
     // * message to the receiving user by adding an appropriate entry into the
     // message relation (msgIDs
     // * should be auto-generated and timeSent should be set to the current time of
@@ -685,7 +685,7 @@ public class BeSocial {
     // The user should be
     // * prompted to enter the body of the message, which could be multi-lined. Then
     // the application
-    // * should “send” the message to the group by adding an appropriate entry into
+    // * should send the message to the group by adding an appropriate entry into
     // the message
     // * relation (msgIDs should be auto-generated and timeSent should be set to the
     // current time of
@@ -693,7 +693,7 @@ public class BeSocial {
     // messageRecipient
     // * relation. The user should lastly be shown success or failure feedback.
     // * Note that if the user sends a message to one friend, you only need to put
-    // the friend’s userID
+    // the friend's userID
     // * to ToUserID in the table of message. If the user wants to send a message to
     // a group, you need
     // * to put the group ID to ToGroupID in the table of message and use a trigger
@@ -724,17 +724,17 @@ public class BeSocial {
     }
 
     // TODO CASE 15
-    // * This task supports the browsing of the logged-in user’s friends’ profiles.
+    // * This task supports the browsing of the logged-in user's friends' profiles.
     // It first displays each
-    // * of the user’s friends’ names and userIDs. Then it allows the user to either
-    // retrieve a friend’s
+    // * of the user's friends' names and userIDs. Then it allows the user to either
+    // retrieve a friend's
     // * entire profile by entering the appropriate userID or exit browsing and
     // return to the main menu
-    // * by entering 0 as a userID. When selected, a friend’s profile should be
+    // * by entering 0 as a userID. When selected, a friend's profile should be
     // displayed in a nicely
     // * formatted way, after which the user should be prompted to either select to
     // retrieve another
-    // * friend’s profile or return to the main menu.
+    // * friend's profile or return to the main menu.
     public static void displayFriends() {
         // * write code for displayFriends here
     }
@@ -742,8 +742,8 @@ public class BeSocial {
     // TODO CASE 16
     // * This task should produce a ranked list of groups based on their number of
     // members.
-    // * In the event that there are no groups in the system, a message “No Groups
-    // to Rank” should
+    // * In the event that there are no groups in the system, a message No Groups
+    // to Rank should
     // * be displayed to the user.
     public static void rankGroups() {
         // ! ** WORK IN PROGRESS - NOT COMPLETE **
@@ -812,7 +812,7 @@ public class BeSocial {
     // TODO CASE 20
     // * The function should return the user to the top level of the UI after
     // marking the time of the
-    // * user’s logout in the user’s “lastlogin” field of the user relation from the
+    // * user's logout in the user's lastlogin field of the user relation from the
     // Clock table
     public static void logout() {
         System.out.println("Logging out...");
