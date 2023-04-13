@@ -372,14 +372,13 @@ public class BeSocial {
             // call delete from profile on specified email, cascade (to move other
             // associated data)
             PreparedStatement dropProfile = conn.prepareStatement(
-                    "DELETE FROM PROFILE WHERE EMAIL = ? CASCADE;");
+                    "DELETE FROM PROFILE WHERE EMAIL = ?;");
             dropProfile.setString(1, email); // set email as first parameter
-            ResultSet rs = dropProfile.executeQuery();
-            if (rs.next() == false) {
-                System.out.println("Unable to drop that profile, please ensure you are entering a valid email");
+            int rs = dropProfile.executeUpdate();
+            if (rs == 1) {
+                System.out.printf("Successfully dropped profile for %s\n", email);
             } else {
-                String confirmedEmail = rs.getString("email");
-                System.out.printf("Successfully dropped profile for %s\n", confirmedEmail);
+                System.out.println("Unable to drop that profile, please ensure you are entering a valid email");
             }
 
         } catch (Exception e) {
