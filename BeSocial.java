@@ -428,6 +428,7 @@ public class BeSocial {
         System.out.println("What would you like your request to say?: ");
         String req = sc.nextLine();
         req = req.substring(0, Math.min(req.length(), 200));
+        if (req.equals("")) req = null;
         try {
             CallableStatement func = conn.prepareCall("{ ? = call addFriendRequest(?, ?, ?) }");
             func.setInt(1, userID);
@@ -576,7 +577,23 @@ public class BeSocial {
     // the logged-in user
     // * to the group by inserting a new entry into the pendingGroupMember relation.
     public static void initiateAddingGroup() {
-        // * write code for initiateAddingGroup here
+        System.out.print("Enter the group ID you would like to search for: ");
+        int gID = sc.nextInt();
+        System.out.print("Enter your request test: ");
+        String req = sc.nextLine();
+        req = req.substring(0, Math.min(req.length(), 200));
+        if (req.equals("")) req = null;
+
+        try {
+            CallableStatement callableStatement = conn.prepareCall("{ call addPendingMember(?, ?, ?) }");
+            callableStatement.setInt(1, gID);
+            callableStatement.setInt(2, userID);
+            callableStatement.setString(3, req);
+            callableStatement.execute();
+            System.out.println("Successfully requested to join.");
+        } catch (SQLException e) {
+            printErrors(e);
+        }
     }
 
     // TODO CASE 8

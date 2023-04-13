@@ -213,3 +213,16 @@ CREATE OR REPLACE TRIGGER createNewMember
     ON groupMember
     FOR EACH ROW
     EXECUTE FUNCTION createMember();
+
+-- Adds a user to pendingGroupMember upon request
+CREATE OR REPLACE PROCEDURE addPendingMember(gID INT, uID int, requestText VARCHAR(200))
+AS
+$$
+    BEGIN
+        IF requestText IS NULL THEN
+            INSERT INTO pendinggroupmember VALUES (gID, uID);
+        ELSE
+            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText);
+        END IF;
+    END;
+$$ LANGUAGE plpgsql;
