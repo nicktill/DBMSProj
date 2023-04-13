@@ -11,6 +11,7 @@ import org.postgresql.util.PSQLException;
 /**
  * Questions
  *  - CASE 19 - Should this also be a admin only task since it requires userID? 
+ *  - CASE 4 - Same as the above. It says based on userID but shouldn't it use email?
  */
 
 import java.sql.*;
@@ -72,7 +73,7 @@ public class BeSocial {
         try {
             int userInput = -1;
             isLoggedIn = false;
-            while (userInput != 0) {
+            while (true) {
                 displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
@@ -107,7 +108,6 @@ public class BeSocial {
                         break;
                     case 3:
                         login();
-                        isLoggedIn = true;
                         break;
                     case 4:
                         initiateFriendship();
@@ -158,7 +158,7 @@ public class BeSocial {
                         threeDegrees();
                         break;
                     case 20:
-                        logout(userID, isLoggedIn);
+                        logout();
                         break;
                     case 21:
                         exit();
@@ -300,6 +300,7 @@ public class BeSocial {
             } else {
                 userID = rs.getInt("userID");
                 System.out.printf("Successfully logged in as %s\n", username);
+                isLoggedIn = true;
             }
         } catch (SQLException e) {
             System.out.println("DATABASE ERROR: Could not access the database");
@@ -793,27 +794,31 @@ public class BeSocial {
     // marking the time of the
     // * user’s logout in the user’s “lastlogin” field of the user relation from the
     // Clock table
-    public static void logout(int userID, boolean isLoggedIn) {
+    public static void logout() {
         System.out.println("Logging out...");
-        // ? grab current time somehow from clock value ?? (this is temporary for now)
-        String currentTime = "00-00-2023"; // ? insert time to currentTime (using placeholder for now)
         try {
-            PreparedStatement logoutUpdate = conn.prepareStatement(
-                    "UPDATE profile SET lastlogin = ? WHERE userID = ?");
-            logoutUpdate.setString(1, currentTime);
-            logoutUpdate.setInt(2, userID);
-            ResultSet rs = logoutUpdate.executeQuery();
-            if (rs.next() == false) {
-                System.out.println("Error logging out, please try again");
-            } else {
+            // Get the time from the clock
+            Statement st = conn.createStatement();
+            String query = "SELECT pseudo_time FROM clock;";
+            ResultSet res = st.executeQuery(query);
+            res.next();
+            String clockTime = res.getString("pseudo_time");
+            st.close();
+           
+            st = conn.createStatement();
+            String logoutUpdateQuery = "UPDATE profile SET lastlogin = '" + clockTime + "' WHERE userID = " + userID + ";";
+            int rs = st.executeUpdate(logoutUpdateQuery);
+           
+            if (rs == 1) {
                 System.out.println("Successfully logged out");
+                isLoggedIn = false; // update state varible loggedIn
+                userID = -1;
+            } else {
+                System.out.println("Error logging out, please try again");
             }
-
         } catch (SQLException e) {
             System.out.println("Error caught in logout function: " + e.getMessage());
         }
-        isLoggedIn = false; // update state varible loggedIn
-        System.out.println("Logged out successfully");
     }
 
     // TODO CASE 21
