@@ -8,9 +8,13 @@ import java.util.regex.Pattern;
  * Questions
  *  - CASE 19 - Should this also be a admin only task since it requires userID? 
  *  - CASE 4 - Same as the above. It says based on userID but shouldn't it use email?
+ *  - TASK 8 - Can I display the user ID or do I have to display their names?
  */
 
 import java.sql.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
 public class BeSocial {
@@ -536,9 +540,6 @@ public class BeSocial {
             createGroup.setString(4, groupDescription);
             createGroup.executeUpdate();
 
-            String createGroupMemberQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, '%s', NULL);", gID, userID, "manager");
-            st.executeUpdate(createGroupMemberQuery);
-
             // Commit both at once - chicken and egg
             conn.commit();
             System.out.println("Group created successfully!");
@@ -626,7 +627,73 @@ public class BeSocial {
     // be displayed if
     // * the user is not a manager of any groups.
     public static void confirmGroupMembership() {
-        // * write code for confirmGroupMembership here
+        // Get the groups where the user is a manager
+        List<Integer> groupIDs = new LinkedList<Integer>();
+
+        try {
+            Statement st = conn.createStatement();
+            String getGroupsQuery = String.format("SELECT gID from groupMember WHERE userID = %d AND role = 'manager';", userID);
+            ResultSet rs = st.executeQuery(getGroupsQuery);
+            while (rs.next()) {
+                groupIDs.add(rs.getInt("gID"));
+            }
+            st.close();
+        } catch (SQLException e) {
+            printErrors(e);
+        }
+
+        // If the user is not a manager of any groups display "No groups are currently managed"
+        if (groupIDs.size() == 0) {
+            System.out.println("No groups are currently managed");
+            return;
+        }
+
+        // Get a list of group membership requests
+        List<PendingGroupMemberObj> groupMembershipRequests = new LinkedList<>();
+
+        for (int i = 0; i < groupIDs.size(); i++) {
+            try {
+                Statement st = conn.createStatement();
+                String getGroupsQuery = String.format("SELECT userID, requestText, requestTime from pendingGroupMember WHERE gID = %d;", groupIDs.get(i));
+                ResultSet rs = st.executeQuery(getGroupsQuery);
+                while (rs.next()) {
+                    int userID = rs.getInt("userID");
+                    String requestText = rs.getString("requestText");
+                    String requestTime = String.valueOf(rs.getTimestamp("requestTime"));
+                    groupMembershipRequests.add(new PendingGroupMemberObj(groupIDs.get(i), userID, requestText, requestTime));
+                }
+                st.close();
+            } catch (SQLException e) {
+                printErrors(e);
+            }
+        }
+
+        // If there are no pending group membership requests for any groups they are a manager of, display "No Pending Group Membership Requests"
+        if (groupMembershipRequests.size() == 0) {
+            System.out.println("No Pending Group Membership Requests");
+        }
+
+        // For each group, display a formatted numbered list of all the pending group membership requests with the associate request text
+        int currentGroup = -1;
+        for (PendingGroupMemberObj pendingGroupMember : groupMembershipRequests) {
+            if (pendingGroupMember.gID != currentGroup) {
+                currentGroup = pendingGroupMember.gID;
+                System.out.println("-----------------------------------------");
+                System.out.println("Displaying Requests for Group: " + pendingGroupMember.gID);
+            }
+            System.out.println("User: " + pendingGroupMember.userID);
+            System.out.println("Request Message: " + pendingGroupMember.requestText);
+            System.out.println("Time Requested: " + pendingGroupMember.requestTime);
+            System.out.println();
+        }
+
+        // Prompt the user for the number of request they would like to confirm (one at a time), or let them confirm all
+
+        // Move the selected request(s) from pendingGroupMember to groupMember using current time in clock for lastConfirmed timestamp
+
+        // If a request is accepted, but would cause the groups size to exceed the max, then leave the request in pendingGroupMember
+
+        // Requests not selected are then removed from pendingGroupMember
     }
 
     // TODO CASE 9
@@ -857,6 +924,20 @@ public class BeSocial {
         System.out.println(e.getMessage());
         while ((e = e.getNextException()) != null) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    private static class PendingGroupMemberObj {
+        private int gID;
+        private int userID;
+        private String requestText;
+        private String requestTime;
+
+        public PendingGroupMemberObj(int gID, int userID, String requestText, String requestTime) {
+            this.gID = gID;
+            this.userID = userID;
+            this.requestText = requestText;
+            this.requestTime = requestTime;
         }
     }
 }
