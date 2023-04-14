@@ -519,11 +519,19 @@ public class BeSocial {
                         System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
                         fromID = sc.nextInt();
                     }
+                    //accept request
                     acceptFriendRequest(userID, fromID);
-                    //prompt user for next request
-                    System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                    System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
                     fromID = sc.nextInt();
                 }
+                // remove all the requests that were not accepted (specified per pdf)
+                String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
+                PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
+                removeDeclinedReqsStatement.setInt(1, userID);
+                removeDeclinedReqsStatement.executeUpdate();
+                removeDeclinedReqsStatement.close();
+                System.out.print("Exiting menu...\n");
+                
             }
 
         } catch (SQLException e) {
@@ -539,6 +547,7 @@ public class BeSocial {
         addPendingFriendStatement.executeUpdate();
         addPendingFriendStatement.close();
     }
+    
     
     // !   WORK IN PROGRESS
 
