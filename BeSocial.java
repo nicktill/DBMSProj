@@ -580,7 +580,8 @@ public class BeSocial {
     public static void initiateAddingGroup() {
         System.out.print("Enter the group ID you would like to search for: ");
         int gID = sc.nextInt();
-        System.out.print("Enter your request test: ");
+        sc.nextLine();
+        System.out.print("Enter your request text: ");
         String req = sc.nextLine();
         req = req.substring(0, Math.min(req.length(), 200));
         if (req.equals("")) req = null;
