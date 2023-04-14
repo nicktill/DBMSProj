@@ -151,17 +151,24 @@ CREATE OR REPLACE TRIGGER incrementUserID
 EXECUTE FUNCTION increment_pid();
 
 
- 
+
+
+-- IF EXISTS ALREADY DROP
+ DROP FUNCTION IF EXISTS listpendingfriends(integer);
+
 -- ! maybe working (not sure how to test) -nick
 CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
-    RETURNS TABLE(fromID integer, requestText text)
+    RETURNS TABLE(requestText text, fromID integer)
     AS
 $$
 BEGIN
-    RETURN QUERY SELECT requestText, fromID FROM pendingFriend WHERE toID = userID;
+    -- cast to text because of the way postgres handles text
+    RETURN QUERY SELECT pf.requestText::text AS requestText, pf.fromID AS fromID FROM pendingFriend pf WHERE pf.toID = userID;
 END;
 $$ 
 LANGUAGE plpgsql;
+
+
 
 
 -- ! maybe working (not sure how to test) -nick

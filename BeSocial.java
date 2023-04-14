@@ -564,7 +564,7 @@ public class BeSocial {
                     addPendingFriendStatement.executeUpdate();
             }
             else{
-                // ADD Friend with request text
+                // ADD Friend with custom request text
                 String addPendingFriendWithReqText = "INSERT INTO friend (fromID, toID, JDate, reqText) VALUES(?, ?, ?, ?);";
                 PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
                 addPendingFriendStatement.setInt(1, userID);
