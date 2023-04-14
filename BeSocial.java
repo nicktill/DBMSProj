@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.sql.Timestamp;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -391,13 +392,13 @@ public class BeSocial {
 
     // TODO CASE 4
     // * Create a pending friendship from the logged-in user profile to another user
-    // profile based on
+    // * profile based on
     // * userID. The application should display the name of the person that will be
-    // sent a friend request
+    // * sent a friend request
     // * and the user should be prompted to enter the text to be sent along with the
-    // request. A last
+    // * request. A last
     // * confirmation should be requested of the user before an entry is inserted
-    // into the pendingFriend
+    // * into the pendingFriend
     // * relation, and success or failure feedback is displayed for the user.
     public static void initiateFriendship() {
         System.out.print("Enter the userID of the friend you want to request: ");
@@ -426,7 +427,7 @@ public class BeSocial {
         }
 
         // Now actually insert the pending friendship
-        System.out.println("What would you like your request to say?: ");
+        System.out.println("What would you like your friend request to say?: ");
         String req = sc.nextLine();
         req = req.substring(0, Math.min(req.length(), 200));
         if (req.equals("")) req = null;
@@ -542,7 +543,7 @@ public class BeSocial {
             PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
             ResultSet clockInfo = clockQueryStatement.executeQuery();
             clockInfo.next(); 
-            String clockTime = clockInfo.getString("pseudo_time");
+            Timestamp clockTime = clockInfo.getTimestamp("pseudo_time");
     
             // GRAB REQUEST TEXT
             String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
@@ -559,7 +560,7 @@ public class BeSocial {
                     PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
                     addPendingFriendStatement.setInt(1, userID);
                     addPendingFriendStatement.setInt(2, fromID);
-                    addPendingFriendStatement.setString(3, clockTime);
+                    addPendingFriendStatement.setTimestamp(3, clockTime);
                     addPendingFriendStatement.executeUpdate();
             }
             else{
@@ -568,7 +569,7 @@ public class BeSocial {
                 PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
                 addPendingFriendStatement.setInt(1, userID);
                 addPendingFriendStatement.setInt(2, fromID);
-                addPendingFriendStatement.setString(3, clockTime);
+                addPendingFriendStatement.setTimestamp(3, clockTime);
                 addPendingFriendStatement.setString(4, requestText);
                 addPendingFriendStatement.executeUpdate();
                 
