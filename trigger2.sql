@@ -152,7 +152,7 @@ EXECUTE FUNCTION increment_pid();
 
 
  
--- ! NICK CODE
+-- ! work in progress  -nick 
 CREATE OR REPLACE FUNCTION listPendingFriends()
     RETURNS TABLE(fromID integer, requestText text)
     AS
@@ -182,7 +182,7 @@ BEGIN
 END;
 $$
  LANGUAGE plpgsql;
--- ! NICK CODE
+-- ! work in progress - nick
 
 CREATE OR REPLACE TRIGGER addFriendAndDeletePending
     BEFORE INSERT
@@ -215,3 +215,41 @@ CREATE OR REPLACE TRIGGER createNewMember
     ON groupMember
     FOR EACH ROW
     EXECUTE FUNCTION createMember();
+
+-- Adds a user to pendingGroupMember upon request
+CREATE OR REPLACE PROCEDURE addPendingMember(gID INT, uID int, requestText VARCHAR(200))
+AS
+$$
+    BEGIN
+        IF requestText IS NULL THEN
+            INSERT INTO pendinggroupmember VALUES (gID, uID);
+        ELSE
+            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText);
+        END IF;
+    END;
+$$ LANGUAGE plpgsql;
+
+-- Change timestamp in groupMember for new insert
+
+CREATE OR REPLACE FUNCTION createPendingGroupMember()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    curTime TIMESTAMP;
+BEGIN
+    SELECT pseudo_time
+    INTO curTime
+    FROM clock;
+
+    NEW.requestTime = curTime;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE TRIGGER createPendingGroupMember
+    BEFORE INSERT
+    ON pendingGroupMember
+    FOR EACH ROW
+    EXECUTE FUNCTION createPendingGroupMember();

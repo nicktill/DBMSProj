@@ -3,8 +3,8 @@
 -- Generate 100 Profiles
 INSERT INTO profile VALUES(0, 'admin', 'admin@besocial.com', 'admin', '2000-01-01', '2022-01-01 00:00:00');
 INSERT INTO profile VALUES(1, 'Nicholas Tillmann', 'ntillmann1439@gmail.com', 'pass', '2000-08-12', '1986-11-19 04:29:51');
-INSERT INTO profile VALUES(2, 'Megan Vasquez', 'hpotter@yahoo.com', '$+4H)xxSxc', '1944-04-21', '1982-05-29 10:11:48');
-INSERT INTO profile VALUES(3, 'Vanessa Armstrong', 'donnacabrera@yahoo.com', 'O$Oc9VEhgy', '1943-08-22', '1972-06-14 08:57:12');
+INSERT INTO profile VALUES(2, 'Jonah Osband', 'jonahro2002@gmail.com', 'please', '2002-07-26', '1982-05-29 10:11:48');
+INSERT INTO profile VALUES(3, 'Steven', 'sjj27@pitt.edu', '1', '1943-08-22', '1972-06-14 08:57:12');
 INSERT INTO profile VALUES(4, 'Nicholas Dyer', 'amy00@yahoo.com', '$$7xXS#nO)', '1954-12-29', '1997-04-22 18:08:34');
 INSERT INTO profile VALUES(5, 'John Zavala', 'aweber@yahoo.com', 'fSPeCXbq%7', '1996-08-26', '1987-12-02 23:28:00');
 INSERT INTO profile VALUES(6, 'Emily Moore', 'blakegraham@yahoo.com', 'g8hkB4Ye%P', '1986-05-23', '2005-01-20 10:45:43');
