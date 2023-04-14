@@ -532,41 +532,49 @@ public class BeSocial {
     }
     // * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
     public static void acceptFriendRequest(int userID, int fromID) throws SQLException {
-        // GRAB CLOCK INFO
-        String clockQuery = "SELECT pseudo_time FROM clock;";
-        PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
-        ResultSet clockInfo = clockQueryStatement.executeQuery();
-        clockInfo.next(); 
-        String clockTime = clockInfo.getString("pseudo_time");
-
-        // GRAB REQUEST TEXT
-        String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
-        PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
-        reqTextStatement.setInt(1, fromID);
-        reqTextStatement.setInt(2, userID);
-        ResultSet reqTextInfo = reqTextStatement.executeQuery();
-        reqTextInfo.next(); 
-        String requestText = reqTextInfo.getString("requestText");
-        if (requestText == null) {
-                // ADD Friend with no request text
-                String addPendingFriendWithNoReqText = "INSERT INTO friend (fromID, toID, JDate) VALUES(?, ?, ?);";
-                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+        try {
+            // GRAB CLOCK TIME
+            String clockQuery = "SELECT pseudo_time FROM clock;";
+            PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
+            ResultSet clockInfo = clockQueryStatement.executeQuery();
+            clockInfo.next(); 
+            String clockTime = clockInfo.getString("pseudo_time");
+    
+            // GRAB REQUEST TEXT
+            String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+            PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
+            reqTextStatement.setInt(1, fromID);
+            reqTextStatement.setInt(2, userID);
+            ResultSet reqTextInfo = reqTextStatement.executeQuery();
+            reqTextInfo.next(); 
+            String requestText = reqTextInfo.getString("requestText");
+            
+            if (requestText == null) {
+                    // ADD Friend with no request text
+                    String addPendingFriendWithNoReqText = "INSERT INTO friend (fromID, toID, JDate) VALUES(?, ?, ?);";
+                    PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+                    addPendingFriendStatement.setInt(1, userID);
+                    addPendingFriendStatement.setInt(2, fromID);
+                    addPendingFriendStatement.setString(3, clockTime);
+                    addPendingFriendStatement.executeUpdate();
+            }
+            else{
+                // ADD Friend with request text
+                String addPendingFriendWithReqText = "INSERT INTO friend (fromID, toID, JDate, reqText) VALUES(?, ?, ?, ?);";
+                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
                 addPendingFriendStatement.setInt(1, userID);
                 addPendingFriendStatement.setInt(2, fromID);
                 addPendingFriendStatement.setString(3, clockTime);
+                addPendingFriendStatement.setString(4, requestText);
                 addPendingFriendStatement.executeUpdate();
+                
+            }
+
         }
-        else{
-            // ADD Friend with request text
-            String addPendingFriendWithReqText = "INSERT INTO friend (fromID, toID, JDate, reqText) VALUES(?, ?, ?, ?);";
-            PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
-            addPendingFriendStatement.setInt(1, userID);
-            addPendingFriendStatement.setInt(2, fromID);
-            addPendingFriendStatement.setString(3, clockTime);
-            addPendingFriendStatement.setString(4, requestText);
-            addPendingFriendStatement.executeUpdate();
+        catch (SQLException e) {
+            // print error message
+            System.err.println("Error: " + e.getMessage());
         }
-            
     }
 
     // TODO CASE 6
