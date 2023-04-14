@@ -68,9 +68,7 @@ public class BeSocial {
         // If the connection is properly established, clear command line and start
 
         System.out.print("\033\143"); // Clears the command line console, shoutout stack overflow
-
         System.out.println("Welcome to BeSocial!\n");
-
         // Run the main program loop until the user exits
         try {
             int userInput = -1;
