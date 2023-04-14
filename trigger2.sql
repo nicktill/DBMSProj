@@ -220,9 +220,9 @@ AS
 $$
     BEGIN
         IF requestText IS NULL THEN
-            INSERT INTO pendinggroupmember VALUES (gID, uID, (SELECT pseudo_time FROM CLOCK));
+            INSERT INTO pendinggroupmember VALUES (gID, uID);
         ELSE
-            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText, (SELECT pseudo_time FROM CLOCK));
+            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText);
         END IF;
     END;
 $$ LANGUAGE plpgsql;
