@@ -105,7 +105,7 @@ CREATE TABLE groupMember (
 CREATE TABLE pendingGroupMember (
     gID             INT,
     userID          INT,
-    requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)',
+    requestText     VARCHAR(200) DEFAULT 'I would like to join your group! :)' NOT NULL,
     requestTime     TIMESTAMP NOT NULL, -- Ensure a timestamp is included in the table
 
     -- Constraints
@@ -181,3 +181,4 @@ SELECT * FROM groupMember;
 SELECT * FROM pendingGroupMember;
 SELECT * FROM message;
 SELECT * FROM messageRecipient;
+

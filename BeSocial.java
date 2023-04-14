@@ -1,9 +1,7 @@
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
+
 import org.postgresql.util.PSQLException;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
@@ -580,7 +578,8 @@ public class BeSocial {
     public static void initiateAddingGroup() {
         System.out.print("Enter the group ID you would like to search for: ");
         int gID = sc.nextInt();
-        System.out.print("Enter your request test: ");
+        sc.nextLine();
+        System.out.print("Enter your request text: ");
         String req = sc.nextLine();
         req = req.substring(0, Math.min(req.length(), 200));
         if (req.equals("")) req = null;
@@ -593,7 +592,18 @@ public class BeSocial {
             callableStatement.execute();
             System.out.println("Successfully requested to join.");
         } catch (SQLException e) {
-            printErrors(e);
+            String message = e.getMessage();
+            while ((e = e.getNextException()) != null) {
+                message.concat(e.getMessage());
+            }
+
+            if (message.contains("violates foreign key constraint")) {
+                System.out.println("The group you tried to join does not exist");
+            } else if (message.contains ("already exists")) {
+                System.out.println("You already tried to join this group");
+            } else {
+                printErrors(e);
+            }
         }
     }
 

@@ -226,3 +226,28 @@ $$
         END IF;
     END;
 $$ LANGUAGE plpgsql;
+
+-- Change timestamp in groupMember for new insert
+
+CREATE OR REPLACE FUNCTION createPendingGroupMember()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    curTime TIMESTAMP;
+BEGIN
+    SELECT pseudo_time
+    INTO curTime
+    FROM clock;
+
+    NEW.requestTime = curTime;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE TRIGGER createPendingGroupMember
+    BEFORE INSERT
+    ON pendingGroupMember
+    FOR EACH ROW
+    EXECUTE FUNCTION createPendingGroupMember();
