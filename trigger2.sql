@@ -152,7 +152,7 @@ EXECUTE FUNCTION increment_pid();
 
 
  
--- ! work in progress  -nick 
+-- ! maybe working (not sure how to test) -nick
 CREATE OR REPLACE FUNCTION listPendingFriends(integer userID)
     RETURNS TABLE(fromID integer, requestText text)
     AS
@@ -164,31 +164,22 @@ $$
 LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION addFriendRequest(integer userID1, integer userID2, text requestText)
+-- ! maybe working (not sure how to test) -nick
+CREATE OR REPLACE FUNCTION deletePending()
     RETURNS TRIGGER AS
 $$
-DECLARE 
-    curTime TIMESTAMP;
-    userID1 pendingFriend%ROWTYPE;
-    userID2  pendingFriend%ROWTYPE;
 BEGIN
-    -- update the clock
-    SELECT pseudo_time INTO curTime FROM clock;
-    -- insert the new friend into the friend table
-    INSERT INTO friend (userID1, userID2, JDate) VALUES (NEW.fromID, NEW.toID, curTime)
-    -- remove the associated friend request from pendingFriend table
     DELETE FROM pendingFriend WHERE fromID = NEW.fromID AND toID = NEW.toID;
     RETURN NEW;
 END;
-$$
- LANGUAGE plpgsql;
--- ! work in progress - nick
+$$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE TRIGGER addFriendAndDeletePending
-    BEFORE INSERT
+-- ! maybe working (not sure how to test) -nick
+CREATE OR REPLACE TRIGGER deletePendingFriendAfterInsert
+    AFTER INSERT
     ON friend
     FOR EACH ROW
-EXECUTE FUNCTION addFriendRequest();
+EXECUTE FUNCTION deletePending();
 
 
 

@@ -447,25 +447,15 @@ public class BeSocial {
     }
 
     // TODO CASE 5
-    // * This task should first display a formatted, numbered list of all the
-    // * outstanding friend requests
-    // * with the associated request text. Then the user should be prompted for a
-    // * number of the request
-    // * they would like to confirm, one at a time, or given the option to confirm
-    // * them all.
-    // * The application should move the selected request(s) from the pendingFriend
-    // * relation to the
+    // * This task should first display a formatted, numbered list of all the outstanding friend requests
+    // * with the associated request text. Then the user should be prompted for a number of the request
+    // * they would like to confirm, one at a time, or given the option to confirm them all.
+    // * The application should move the selected request(s) from the pendingFriend relation to the
     // * friend relation with JDate set to the current date of the Clock table.
-    // * The remaining requests which were not selected are declined and removed
-    // from the pendingFriend relation.
-    // * In the event that the user has no pending friend requests, a message No
-    // Pending Friend
-    // * Requests should be displayed to the user.
-    // * from the pendingFriend relation.
-    // * In the event that the user has no pending friend requests, a message “No
-    // * Pending Friend3
+    // * The remaining requests which were not selected are declined and removed from the pendingFriend relation.
+    // * In the event that the user has no pending friend requests, a message “No Pending Friend
     // * Requests” should be displayed to the user.
-    // !    WORK IN PROGRESS this shit is harder than i thought
+    //  ! POSSIBLY WORKING -- NOT ABLE TO TEST IT ATM, MIGHT NEED TO BE FIXED
     public static void confirmFriendRequests(int userID) {
         try {
             String query = "SELECT * FROM listPendingFriends(?);";
@@ -488,7 +478,6 @@ public class BeSocial {
                 System.out.println("No Pending Friend Requests");
                 return;
             }
-
             //otherwise continue with accepting friend requests
             //prompt user to accept all requests or one at a time
             System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
@@ -509,6 +498,7 @@ public class BeSocial {
                 for (int fromID : fromIDs) {
                     acceptFriendRequest(userID, fromID);
                 }
+                System.out.println("Accepted all requests");
             } else if (choice == 2) {
                 // accept one request at a time
                 System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
@@ -524,32 +514,60 @@ public class BeSocial {
                     System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
                     fromID = sc.nextInt();
                 }
-                // remove all the requests that were not accepted (specified per pdf)
-                String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
-                PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
-                removeDeclinedReqsStatement.setInt(1, userID);
-                removeDeclinedReqsStatement.executeUpdate();
-                removeDeclinedReqsStatement.close();
-                System.out.print("Exiting menu...\n");
+        
                 
             }
-
+            // remove all the requests that were not accepted (specified per pdf)
+            String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
+            PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
+            removeDeclinedReqsStatement.setInt(1, userID);
+            removeDeclinedReqsStatement.executeUpdate();
+            removeDeclinedReqsStatement.close();
+            System.out.print("Exiting menu...\n");
+            
         } catch (SQLException e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         }
     }
+    // * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
     public static void acceptFriendRequest(int userID, int fromID) throws SQLException {
-        String addPendingFriendToFriend = "INSERT INTO friend (fromID, toID) VALUES(?, ?);";
-        PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendToFriend);
-        addPendingFriendStatement.setInt(1, userID);
-        addPendingFriendStatement.setInt(2, fromID);
-        addPendingFriendStatement.executeUpdate();
-        addPendingFriendStatement.close();
+        // GRAB CLOCK INFO
+        String clockQuery = "SELECT pseudo_time FROM clock;";
+        PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
+        ResultSet clockInfo = clockQueryStatement.executeQuery();
+        clockInfo.next(); 
+        String clockTime = clockInfo.getString("pseudo_time");
+
+        // GRAB REQUEST TEXT
+        String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+        PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
+        reqTextStatement.setInt(1, fromID);
+        reqTextStatement.setInt(2, userID);
+        ResultSet reqTextInfo = reqTextStatement.executeQuery();
+        reqTextInfo.next(); 
+        String requestText = reqTextInfo.getString("requestText");
+        if (requestText == null) {
+                // ADD Friend with no request text
+                String addPendingFriendWithNoReqText = "INSERT INTO friend (fromID, toID, JDate) VALUES(?, ?, ?);";
+                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+                addPendingFriendStatement.setInt(1, userID);
+                addPendingFriendStatement.setInt(2, fromID);
+                addPendingFriendStatement.setString(3, clockTime);
+                addPendingFriendStatement.executeUpdate();
+        }
+        else{
+            // ADD Friend with request text
+            String addPendingFriendWithReqText = "INSERT INTO friend (fromID, toID, JDate, reqText) VALUES(?, ?, ?, ?);";
+            PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
+            addPendingFriendStatement.setInt(1, userID);
+            addPendingFriendStatement.setInt(2, fromID);
+            addPendingFriendStatement.setString(3, clockTime);
+            addPendingFriendStatement.setString(4, requestText);
+            addPendingFriendStatement.executeUpdate();
+        }
+            
     }
-    
-    
-    // !   WORK IN PROGRESS
 
     // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
