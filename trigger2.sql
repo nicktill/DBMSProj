@@ -150,47 +150,44 @@ CREATE OR REPLACE TRIGGER incrementUserID
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
 
-/*
-CREATE OR REPLACE FUNCTION confirmFriendRequests()
-    RETURNS VOID $$
-    $$ LANGUAGE plpgsql;
-*/
-/*
--- ! WORK IN PROGRESS
-CREATE OR REPLACE FUNCTION listPendingFriends(int userID)
-    RETURNS SETOF pendingFriend 
+
+ 
+-- ! possibly works idk how to test
+CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
+    RETURNS TABLE(fromID integer, requestText text)
     AS
 $$
 BEGIN
-    RETURN QUERY SELECT requestText FROM pendingFriend WHERE toID = userID;
+    RETURN QUERY SELECT requestText, fromID FROM pendingFriend WHERE toID = userID;
 END;
-$$ LANGUAGE plpgsql;
--- ! WORK IN PROGRESS
-*/
-/*
-CREATE OR REPLACE FUNCTION addFriendRequest(from INT, to INT, text VARCHAR(200))
-RETURNS BOOLEAN AS
-$$
-DECLARE
+$$ 
+LANGUAGE plpgsql;
+-- !end of listPendingFriends
 
+
+
+-- ! possibly works idk how to test 
+CREATE OR REPLACE FUNCTION addFriendRequest(fromID INT, toID INT, requestText VARCHAR(200))
+    RETURNS text
+    AS
+$$
 BEGIN
-    IF text IS NOT NULL THEN
-        INSERT INTO pendingFriend VALUES (from, to);
+    IF requestText IS NOT NULL THEN
+        INSERT INTO pendingFriend (fromID, toID, requestText) VALUES (fromID, toID, requestText);
     ELSE
-        INSERT INTO pendingFriend VALUES (from, to, text);
+        INSERT INTO pendingFriend (fromID, toID) VALUES (fromID, toID);
     END IF;
     
-    RETURN TRUE;
+    RETURN 'Successfully added friend request from ' || fromID || ' with the requestText: ' || requestText;
 
     EXCEPTION WHEN OTHERS THEN
-        RETURN FALSE;
+        RETURN 'Failed to add friend request.';
 END;
 $$ LANGUAGE plpgsql;
+-- !end of addFriendRequest
 
- */
 
 -- Change timestamp in groupMember for new insert
-
 CREATE OR REPLACE FUNCTION createMember()
     RETURNS TRIGGER AS
 $$

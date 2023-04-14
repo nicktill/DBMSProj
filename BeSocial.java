@@ -5,6 +5,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import org.postgresql.util.PSQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -461,30 +465,105 @@ public class BeSocial {
     // * The remaining requests which were not selected are declined and removed
     // from the pendingFriend relation.
     // * In the event that the user has no pending friend requests, a message “No
-    // Pending Friend
+    // Pending Friend3
     // * Requests” should be displayed to the user.
+
+    // !    WORK IN PROGRESS
     public static void confirmFriendRequests(int userID) {
-        try{
+        try {
             String query = "SELECT * FROM listPendingFriends(?);";
             PreparedStatement statement = conn.prepareStatement(query);
             statement.setInt(1, userID);
-
             // Execute the query and process the results
             ResultSet rs = statement.executeQuery();
+            List<Integer> fromIDs = new ArrayList<>();
             int i = 1;
             while (rs.next()) {
                 String requestText = rs.getString("requestText");
-                int pendingFromID = rs.getInt("toID");
-                System.out.println(i + "." +  userID + "\t" + requestText + pendingFromID); //1. UserID: ID,  requestText: requestTExt
+                int fromID = rs.getInt("fromID"); //get current fromID
+                System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
+                fromIDs.add(fromID); //add current fromID to list for use later
                 i++;
             }
-        }
-      catch (SQLException e) {
+    
+            //if no pending friend requests exist
+            if (fromIDs.isEmpty()) {
+                System.out.println("No Pending Friend Requests");
+                return;
+            }
+    
+            //prompt user to accept all requests or one at a time
+            System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
+                    "1. Accept all requests\n" +
+                    "2. Specify one request at a time\n");
+            int choice = sc.nextInt();
+
+            //validate input
+            while (choice != 1 && choice != 2) {
+                System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+                        "1. Accept all requests\n" +
+                        "2. Specify one request at a time\n");
+                choice = sc.nextInt();
+            }
+    
+            //accept requests
+            if (choice == 1) {
+                // accept all requests
+                for (int fromID : fromIDs) {
+                    acceptFriendRequest(userID, fromID);
+                }
+            } else if (choice == 2) {
+                // accept one request at a time
+                System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                int requestNum = sc.nextInt();
+                while (requestNum != -1) {
+                    if (requestNum > 0 && requestNum <= fromIDs.size()) {
+                        int fromID = fromIDs.get(requestNum - 1);
+                        acceptFriendRequest(userID, fromID);
+                    } else {
+                        System.out.println("Invalid request number.");
+                    }
+                    System.out.println("Enter the number of the request you'd like to accept (or enter -1 to stop):");
+                    requestNum = sc.nextInt();
+                }
+            }
+    
+            // Remove remaining pending friend requests (i,e the ones that were not accepted cause the user chose to stop)
+            for (int fromID : fromIDs) {
+                removePendingFriendRequest(userID, fromID);
+            } 
+    
+        } catch (SQLException e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
         }
-
     }
+    
+    public static void acceptFriendRequest(int userID, int fromID) throws SQLException {
+        String addPendingFriendToFriend = "INSERT INTO friend (userID1, userID2, JDate) VALUES (?, ?, ?);";
+        PreparedStatement statement = conn.prepareStatement(addPendingFriendToFriend);
+        statement.setInt(1, Math.min(userID, fromID));
+        statement.setInt(2, Math.max(userID, fromID));
+        statement.setDate(3, '2000-00-00' ); //todo: get current date
+        statement.executeUpdate();
+    
+        // Remove the associated friend request since its been accepted
+        String removePendingRequestQuery = "DELETE FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+        PreparedStatement removePendingRequestStatement = conn.prepareStatement(removePendingRequestQuery);
+        removePendingRequestStatement.setInt(1, Math.min(userID, fromID));
+        removePendingRequestStatement.setInt(2, Math.max(userID, fromID));
+        removePendingRequestStatement.executeUpdate();
+    }
+    
+    
+    public static void removePendingFriendRequest(int userID, int fromID) throws SQLException {
+        String query = "DELETE FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+        PreparedStatement statement = conn.prepareStatement(query);
+        statement.setInt(1, fromID);
+        statement.setInt(2, userID);
+        statement.executeUpdate();
+    }
+    
 
     // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
