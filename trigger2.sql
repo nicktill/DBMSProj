@@ -153,7 +153,7 @@ EXECUTE FUNCTION increment_pid();
 
  
 -- ! work in progress  -nick 
-CREATE OR REPLACE FUNCTION listPendingFriends()
+CREATE OR REPLACE FUNCTION listPendingFriends(integer userID)
     RETURNS TABLE(fromID integer, requestText text)
     AS
 $$
@@ -164,7 +164,7 @@ $$
 LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION addFriendRequest()
+CREATE OR REPLACE FUNCTION addFriendRequest(integer userID1, integer userID2, text requestText)
     RETURNS TRIGGER AS
 $$
 DECLARE 

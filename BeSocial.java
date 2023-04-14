@@ -512,16 +512,13 @@ public class BeSocial {
             } else if (choice == 2) {
                 // accept one request at a time
                 System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
-                int requestNum = sc.nextInt();
-                while (requestNum != -1) {
-                    if (requestNum > 0 && requestNum <= fromIDs.size()) {
-                        int fromID = fromIDs.get(requestNum - 1);
-                        acceptFriendRequest(userID, fromID);
-                    } else {
-                        System.out.println("Invalid request number.");
-                    }
-                    System.out.println("Enter the number of the request you'd like to accept (or enter -1 to stop):");
-                    requestNum = sc.nextInt();
+                int fromID = sc.nextInt();
+                while (fromID != -1) {
+                    //validate input
+                    acceptFriendRequest(userID, fromID);
+                    //prompt user for next request
+                    System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                    fromID = sc.nextInt();
                 }
             }
 
