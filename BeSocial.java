@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
  *  - TASK 8 - Can I display the user ID or do I have to display their names?
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
+    - TASK 10 - Do we need the entire user profile or just their userID?
  */
 
 import java.sql.*;
@@ -829,7 +830,35 @@ public class BeSocial {
     // * or email union the set of all user profiles that have abc in their
     // name or email.
     public static void searchForProfile() {
-        // * write code for searchForProfile here
+        System.out.print("Enter a search string: ");
+        String input = sc.nextLine();
+
+        String[] allSearches = input.split(" ");
+
+        HashSet<Integer> resultingProfiles = new HashSet<>();
+
+        Arrays.stream(allSearches).forEach(search -> {
+            try {
+                PreparedStatement checkUsername = conn.prepareStatement(
+                    "SELECT userID FROM profile WHERE name LIKE ? OR email LIKE ?;");
+                checkUsername.setString(1, "%" + search + "%");
+                checkUsername.setString(2, "%" + search + "%");
+
+                ResultSet res = checkUsername.executeQuery();
+                while (res.next()) {
+                    int userID = res.getInt("userID");
+                    resultingProfiles.add(userID);
+                }
+                
+            } catch (SQLException e) {
+                e.printStackTrace();
+                printErrors(e);
+            }
+        });
+
+        int[] userIDs = resultingProfiles.stream().mapToInt(Integer::intValue).toArray();
+        
+        Arrays.stream(userIDs).forEach(i -> System.out.println(i));
     }
 
     // TODO CASE 11
