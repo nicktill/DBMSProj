@@ -244,3 +244,60 @@ CREATE OR REPLACE TRIGGER createPendingGroupMember
     ON pendingGroupMember
     FOR EACH ROW
     EXECUTE FUNCTION createPendingGroupMember();
+
+-- Generate a message ID for messages inserted into table
+
+CREATE OR REPLACE FUNCTION createMessageID()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    maxID int := NULL;
+    curTime TIMESTAMP;
+BEGIN
+    SELECT MAX(msgID)
+    INTO maxID
+    FROM message;
+
+    IF maxID IS NULL THEN
+        NEW.msgID = 0;
+    ELSE
+        NEW.msgID = maxID + 1;
+    END IF;
+
+    SELECT pseudo_time
+    INTO curTime
+    FROM clock;
+
+    NEW.timeSent = curTime;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE TRIGGER createNewMessageID
+    BEFORE INSERT
+    ON message
+    FOR EACH ROW
+    EXECUTE FUNCTION createMessageID();
+
+-- Function that sends a message to everyone in a given group
+CREATE OR REPLACE FUNCTION sendMessageToGroup(user_ID int, group_ID int, messageText VARCHAR(200))
+RETURNS BOOLEAN
+AS
+$$
+DECLARE
+    member_record RECORD;
+BEGIN
+    -- Get the members of gID except for the sender
+    -- Loop through these members and for each, insert into the message table
+        -- There is a trigger which handles message ID and timestamp
+        -- There is also a trigger which handles inserting into messageRecipient table
+    FOR member_record IN SELECT userID FROM groupMember WHERE gID = group_ID AND userID != user_ID
+    LOOP
+        INSERT INTO message VALUES(NULL, user_ID, messageText, member_record.userID, group_ID, NULL);
+    END LOOP;
+
+    RETURN true;
+END;
+$$ LANGUAGE plpgsql;
