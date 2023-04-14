@@ -1,15 +1,8 @@
 import java.util.Scanner;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
-
-=======
-import java.util.stream.Collectors;
->>>>>>> 1eec216608d921f9f45077884beb7d5125e0343a
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -480,8 +473,8 @@ public class BeSocial {
             List<Integer> fromIDs = new ArrayList<>();
             int i = 1;
             while (rs.next()) {
-                String requestText = rs.getString("requesttext");
-                int fromID = rs.getInt("fromid");
+                String requestText = rs.getString("requestText");
+                int fromID = rs.getInt("fromID");
                 System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
                 fromIDs.add(fromID); //add current fromID to list for use later
                 i++;

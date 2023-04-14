@@ -153,7 +153,7 @@ EXECUTE FUNCTION increment_pid();
 
  
 -- ! maybe working (not sure how to test) -nick
-CREATE OR REPLACE FUNCTION listPendingFriends(integer userID)
+CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
     RETURNS TABLE(fromID integer, requestText text)
     AS
 $$
