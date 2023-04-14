@@ -517,7 +517,7 @@ public class BeSocial {
         
                 
             }
-            // remove all the requests that were not accepted (specified per pdf)
+            // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
             String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
             PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
             removeDeclinedReqsStatement.setInt(1, userID);
