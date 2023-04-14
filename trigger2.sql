@@ -152,8 +152,8 @@ EXECUTE FUNCTION increment_pid();
 
 
  
--- ! possibly works idk how to test
-CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
+-- ! NICK CODE
+CREATE OR REPLACE FUNCTION listPendingFriends()
     RETURNS TABLE(fromID integer, requestText text)
     AS
 $$
@@ -162,29 +162,34 @@ BEGIN
 END;
 $$ 
 LANGUAGE plpgsql;
--- !end of listPendingFriends
 
 
-
--- ! possibly works idk how to test 
-CREATE OR REPLACE FUNCTION addFriendRequest(fromID INT, toID INT, requestText VARCHAR(200))
-    RETURNS text
-    AS
+CREATE OR REPLACE FUNCTION addFriendRequest()
+    RETURNS TRIGGER AS
 $$
+DECLARE 
+    curTime TIMESTAMP;
+    userID1 pendingFriend%ROWTYPE;
+    userID2  pendingFriend%ROWTYPE;
 BEGIN
-    IF requestText IS NOT NULL THEN
-        INSERT INTO pendingFriend (fromID, toID, requestText) VALUES (fromID, toID, requestText);
-    ELSE
-        INSERT INTO pendingFriend (fromID, toID) VALUES (fromID, toID);
-    END IF;
-    
-    RETURN 'Successfully added friend request from ' || fromID || ' with the requestText: ' || requestText;
-
-    EXCEPTION WHEN OTHERS THEN
-        RETURN 'Failed to add friend request.';
+    -- update the clock
+    SELECT pseudo_time INTO curTime FROM clock;
+    -- insert the new friend into the friend table
+    INSERT INTO friend (userID1, userID2, JDate) VALUES (NEW.fromID, NEW.toID, curTime)
+    -- remove the associated friend request from pendingFriend table
+    DELETE FROM pendingFriend WHERE fromID = NEW.fromID AND toID = NEW.toID;
+    RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
--- !end of addFriendRequest
+$$
+ LANGUAGE plpgsql;
+-- ! NICK CODE
+
+CREATE OR REPLACE TRIGGER addFriendAndDeletePending
+    BEFORE INSERT
+    ON friend
+    FOR EACH ROW
+EXECUTE FUNCTION addFriendRequest();
+
 
 
 -- Change timestamp in groupMember for new insert
