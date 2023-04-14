@@ -904,7 +904,60 @@ public class BeSocial {
     // the groupMember
     // * relation.
     public static void sendMessageToGroup() {
-        // * write code for sendMessageToGroup here
+        // Get the group they want to send
+        System.out.print("Enter the group ID of the group you want to message: ");
+        int groupID = sc.nextInt();
+        sc.nextLine();
+
+        // Check if the user is in the group
+        try {
+            PreparedStatement st = conn.prepareStatement("SELECT * from groupMember WHERE userID = ? AND gID = ?;");
+            st.setInt(1, userID);
+            st.setInt(2, groupID);
+
+            ResultSet rs = st.executeQuery();
+            if (rs.next() == false) {
+                System.out.println("You cannot send a message to that group because you are not in it"); 
+                return;
+            } else {
+                System.out.println("Enter the message you want to send (Max 200 Words), ending with 'END': ");
+            }
+            
+            st.close();
+        } catch (SQLException e) {
+            printErrors(e);
+        }
+
+        // Get the message they want to send
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            if (line.equals("END")) {
+                break;
+            }
+            sb.append(line).append("\n");
+        }
+        
+        String message = sb.toString().substring(0, Math.min(sb.length(), 200));;
+
+        // Call pgsql function that will send the msg to everyone in a given group
+        // Java try-with-resources automatically closes the connection and callable statement
+        try {
+            CallableStatement func = conn.prepareCall("{ ? = CALL sendMessageToGroup(?, ?, ?) }");
+            func.setInt(2, userID);
+            func.setInt(3, groupID);
+            func.setString(4, message);
+            func.registerOutParameter(1, Types.BIT);
+            func.execute();
+            boolean result = func.getBoolean(1);
+            if (result) {
+                System.out.println("Successfully sent the message to the group!");
+            } else {
+                System.out.println("Sending message to the group failed");
+            }
+        } catch (SQLException e) {
+            printErrors(e);
+        }
     }
 
     // TODO CASE 13
