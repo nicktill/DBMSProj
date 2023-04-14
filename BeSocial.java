@@ -2,8 +2,6 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.postgresql.util.PSQLException;
-
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
 /**
@@ -51,12 +49,8 @@ public class BeSocial {
             props.setProperty("user", databaseUsername);
             props.setProperty("password", databasePassword);
             conn = DriverManager.getConnection(url, props);
-        } catch (PSQLException e) {
-            System.out.println("Your credentials for connecting to the database are invalid.\nPlease re-run the program");
-            sc.close();
-            System.exit(0);
         } catch (Exception e) {
-            System.out.println(String.format("Unknown Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
+            System.out.println(String.format("Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
             sc.close();
             System.exit(0);
         }
