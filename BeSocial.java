@@ -675,7 +675,6 @@ public class BeSocial {
     // * should lastly be shown success or failure feedback.
     public static void sendMessageToUser() {
         // * write code for sendMessageToUser here
-
     }
 
     // TODO CASE 12
