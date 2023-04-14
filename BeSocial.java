@@ -1,6 +1,8 @@
 import java.util.Scanner;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -9,10 +11,13 @@ import java.util.regex.Pattern;
  *  - CASE 19 - Should this also be a admin only task since it requires userID? 
  *  - CASE 4 - Same as the above. It says based on userID but shouldn't it use email?
  *  - TASK 8 - Can I display the user ID or do I have to display their names?
+ *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
+        request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
  */
 
 import java.sql.*;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -162,6 +167,7 @@ public class BeSocial {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             endProgram();
         }
 
@@ -650,7 +656,9 @@ public class BeSocial {
 
         // Get a list of group membership requests
         List<PendingGroupMemberObj> groupMembershipRequests = new LinkedList<>();
+        HashSet<Integer[]> allUsers = new HashSet<>(); // Keep track of all userIDs
 
+        int counter = 0;
         for (int i = 0; i < groupIDs.size(); i++) {
             try {
                 Statement st = conn.createStatement();
@@ -658,9 +666,11 @@ public class BeSocial {
                 ResultSet rs = st.executeQuery(getGroupsQuery);
                 while (rs.next()) {
                     int userID = rs.getInt("userID");
+                    Integer[] toAdd = {groupIDs.get(i), userID};
+                    allUsers.add(toAdd);
                     String requestText = rs.getString("requestText");
                     String requestTime = String.valueOf(rs.getTimestamp("requestTime"));
-                    groupMembershipRequests.add(new PendingGroupMemberObj(groupIDs.get(i), userID, requestText, requestTime));
+                    groupMembershipRequests.add(new PendingGroupMemberObj(groupIDs.get(i), userID, requestText, requestTime, counter++));
                 }
                 st.close();
             } catch (SQLException e) {
@@ -681,6 +691,7 @@ public class BeSocial {
                 System.out.println("-----------------------------------------");
                 System.out.println("Displaying Requests for Group: " + pendingGroupMember.gID);
             }
+            System.out.println(pendingGroupMember.index + ":");
             System.out.println("User: " + pendingGroupMember.userID);
             System.out.println("Request Message: " + pendingGroupMember.requestText);
             System.out.println("Time Requested: " + pendingGroupMember.requestTime);
@@ -688,12 +699,103 @@ public class BeSocial {
         }
 
         // Prompt the user for the number of request they would like to confirm (one at a time), or let them confirm all
+        HashSet<Integer[]> chosenUsers = new HashSet<>();
+        int numUsersChosen = 0;
+        while (numUsersChosen < allUsers.size()) {
+            System.out.print("Enter one request you would like to confirm, -1 to confirm them all, and -2 when you are done: ");
+            int indexChosen = sc.nextInt();
+            sc.nextLine();
+            if (indexChosen == -1) {
+                chosenUsers = allUsers;
+                break;
+            } else if (indexChosen == -2){
+                break;
+            } else {
+                numUsersChosen++;
+                Integer[] toAdd = {groupMembershipRequests.get(indexChosen).gID, groupMembershipRequests.get(indexChosen).userID};
+                chosenUsers.add(toAdd);
+            }
+        }
+
+        List<List<Integer>> chosenUsersList = new LinkedList<>();
+        chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
+
+        List<List<Integer>> allUsersList = new LinkedList<>();
+        allUsers.stream().forEach(i -> allUsersList.add(Arrays.asList(i[0], i[1])));
+
+        List<List<Integer>> notChosenUsersList = new LinkedList<>();
+
+        for (int i = 0; i < allUsersList.size(); i++) {
+            boolean found = false;
+            int k = allUsersList.get(i).get(0);
+            int l = allUsersList.get(i).get(1);
+            for (int j = 0; j < chosenUsersList.size(); j++) {
+                //System.out.println("Comparing (" + k + ", " + " " + l + ") and " + "(" + chosenUsersList.get(j).get(0)  + ", " + " " + chosenUsersList.get(j).get(1) + ")");
+                if ((k == chosenUsersList.get(j).get(0)) && (l == chosenUsersList.get(j).get(1))){
+                    found = true;
+                }
+            }
+            if (!found) {
+                notChosenUsersList.add(Arrays.asList(k, l));
+            }
+        }
 
         // Move the selected request(s) from pendingGroupMember to groupMember using current time in clock for lastConfirmed timestamp
+        // There is a trigger to do this automatically
+        for (int i = 0; i < notChosenUsersList.size(); i++) {
+            try {
+                Statement st = conn.createStatement();
+                String dropUserQuery = String.format("DELETE FROM groupMember WHERE gID = %d AND userID = %d;", notChosenUsersList.get(i).get(0), notChosenUsersList.get(i).get(1));
+                int rs = st.executeUpdate(dropUserQuery);
+                if (rs == 1) {
+                    System.out.printf("Successfully removed %d from pendingGroupMember\n", notChosenUsersList.get(i).get(1));
+                } else {
+                    System.out.println("Did not remove from pendingGroupMember");
+                }
+            } catch (SQLException e) {
+                // code to handle exception here
+                printErrors(e);
+            }
+        }
 
         // If a request is accepted, but would cause the groups size to exceed the max, then leave the request in pendingGroupMember
 
         // Requests not selected are then removed from pendingGroupMember
+        for (int i = 0; i < chosenUsersList.size(); i++) {
+            try {
+                Statement st = conn.createStatement();
+                String addUserQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, 'member', NULL)", chosenUsersList.get(i).get(0), chosenUsersList.get(i).get(1));
+                int rs = st.executeUpdate(addUserQuery);
+                if (rs == 1) {
+                    System.out.printf("Successfully added %d as a group member\n", chosenUsersList.get(i).get(1));
+                } else {
+                    System.out.println("Did not add group member");
+                }
+                st.close();
+
+                st = conn.createStatement();
+                String dropUserQuery = String.format("DELETE FROM pendingGroupMember WHERE gID = %d AND userID = %d;", chosenUsersList.get(i).get(0), chosenUsersList.get(i).get(1));
+                rs = st.executeUpdate(dropUserQuery);
+                if (rs == 1) {
+                    System.out.printf("Successfully removed %d from pendingGroupMember\n", chosenUsersList.get(i).get(1));
+                } else {
+                    System.out.println("Did not remove from pendingGroupMember");
+                }
+                st.close();
+
+            } catch (SQLException e) {
+                String message = e.getMessage();
+                while ((e = e.getNextException()) != null) {
+                    message.concat(e.getMessage());
+                }
+
+                if (message.contains("Cannot exceed max group size")) {
+                    System.out.println("Cannot accept any more people into group " + chosenUsersList.get(i).get(0));
+                } else {
+                    printErrors(e);
+                }
+            }
+        }
     }
 
     // TODO CASE 9
@@ -932,12 +1034,14 @@ public class BeSocial {
         private int userID;
         private String requestText;
         private String requestTime;
+        private int index;
 
-        public PendingGroupMemberObj(int gID, int userID, String requestText, String requestTime) {
+        public PendingGroupMemberObj(int gID, int userID, String requestText, String requestTime, int index) {
             this.gID = gID;
             this.userID = userID;
             this.requestText = requestText;
             this.requestTime = requestTime;
+            this.index = index;
         }
     }
 }

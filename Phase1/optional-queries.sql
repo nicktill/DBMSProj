@@ -86,9 +86,8 @@ CREATE OR REPLACE FUNCTION check_group_size()
     RETURNS TRIGGER AS
 $$
 DECLARE
-    groupMaxSize  int := 0;
-    groupCurrSize int := 0;
-
+    groupMaxSize  int;
+    groupCurrSize int;
 BEGIN
     SELECT size
     INTO groupMaxSize
@@ -119,3 +118,4 @@ CREATE OR REPLACE TRIGGER groupSize
     ON groupMember
     FOR EACH ROW
 EXECUTE FUNCTION check_group_size();
+
