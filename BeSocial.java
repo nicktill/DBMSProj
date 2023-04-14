@@ -515,6 +515,10 @@ public class BeSocial {
                 int fromID = sc.nextInt();
                 while (fromID != -1) {
                     //validate input
+                    while (!fromIDs.contains(fromID)) {
+                        System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+                        fromID = sc.nextInt();
+                    }
                     acceptFriendRequest(userID, fromID);
                     //prompt user for next request
                     System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
