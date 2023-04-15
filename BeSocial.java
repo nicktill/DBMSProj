@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
     - TASK 10 - Do we need the entire user profile or just their userID?
+    - TASK 9 - Why not change the lastConfirmed?
  */
 
 import java.sql.*;
@@ -282,7 +283,6 @@ public class BeSocial {
         }
     }
 
-    // TODO: CASE 3
     // * Given email and password, login as the user in the system when an
     // appropriate match is found.
     public static void login() {
@@ -816,8 +816,56 @@ public class BeSocial {
     // message Not a Member
     // * of any Groups should be displayed to the user.
     public static void leaveGroup() {
-        // *wrote code for leaveGroup here
+        // TODO: Check what they mean by 'without changing lastConfirmed, bc I feel like that should happen'
+        // Prompt the user to enter the group they would like to leave
+        int groupToLeave = -1;
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM groupMember WHERE userID=" + userID + ";");
+            int groups = 0;
+            while (rs.next()) {
+                System.out.println(rs.getInt("gID"));
+                groups++;
+            }
 
+            if (!(groups > 0)) {
+                System.out.println("Not a member of any Groups.");
+                return;
+            }
+
+            System.out.println("Enter the group ID which you would like to leave: ");
+            groupToLeave = sc.nextInt();
+        } catch (SQLException e) {
+            printErrors(e);
+        }
+
+        // Remove the member from the group
+        try {
+            // Set auto commit to false
+            conn.setAutoCommit(false);
+            PreparedStatement pStatement = conn.prepareStatement("{ call leaveGroup(?, ?) }");
+            pStatement.setInt(1, userID);
+            pStatement.setInt(2, groupToLeave);
+            pStatement.execute();
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+            try {
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("An error occurred while rolling back the transaction");
+                endProgram();
+            }
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                // If another error occurs, just tank the program
+                System.out.println("Unexpected error occurred while setting auto commit back to false");
+                endProgram();
+            }
+        }
     }
 
     // TODO CASE 10

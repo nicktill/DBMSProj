@@ -90,9 +90,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- addMember trigger
-CREATE OR REPLACE TRIGGER updateGroup
+DROP TRIGGER IF EXISTS updateGroup ON groupmember CASCADE;
+CREATE CONSTRAINT TRIGGER updateGroup
     AFTER DELETE
     ON groupMember
+    DEFERRABLE INITIALLY IMMEDIATE
     FOR EACH ROW
 EXECUTE FUNCTION update_group();
 
@@ -307,4 +309,41 @@ BEGIN
 
     RETURN true;
 END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE leaveGroup(userID INT, gID INT)
+AS
+$$
+    DECLARE
+        groupNum INT := NULL;
+        rec_pending pendinggroupmember%ROWTYPE := NULL;
+    BEGIN
+        -- Set the constraints to be deferred
+        SET CONSTRAINTS ALL DEFERRED;
+
+        -- Make sure that the user is in the group
+        SELECT G.gid INTO groupNum
+        FROM groupmember AS G
+        WHERE G.userid=leaveGroup.userID AND G.gid=leaveGroup.gID
+        FOR UPDATE OF pendinggroupmember, groupmember;
+
+        IF groupNum IS NULL THEN
+            RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
+        END IF;
+
+        -- Now remove the group member
+        DELETE FROM groupmember AS g WHERE g.userid = leaveGroup.userID AND g.gid = leaveGroup.gID;
+
+        -- Now add the FIRST member and update their last confirmed time
+        SELECT * INTO rec_pending
+        FROM pendinggroupmember AS P
+        WHERE p.gid=leaveGroup.gID
+        ORDER BY requesttime;
+
+        IF rec_pending IS NOT NULL THEN
+            INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
+            DELETE FROM pendinggroupmember AS P
+                   WHERE P.userid=rec_pending.userid AND P.gid=rec_pending.gid;
+        END IF;
+    END;
 $$ LANGUAGE plpgsql;
