@@ -347,3 +347,30 @@ $$
         END IF;
     END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION sendMessageToUser(fromUser INT, toUser INT, text varchar(200))
+RETURNS BOOLEAN AS
+$$
+    DECLARE
+        time timestamp;
+        maxMessage INT;
+    BEGIN
+        -- Get the max user id
+        SELECT MAX(msgid) INTO maxMessage
+        FROM message
+        FOR UPDATE OF message; -- Use for synchronization
+
+        IF maxMessage IS NULL THEN
+            maxMessage := 0;
+        end if;
+
+        -- Get the time for when the message will be sent
+        SELECT pseudo_time INTO time
+        FROM clock;
+
+        -- Send the message
+        INSERT INTO message VALUES (maxMessage + 1, fromUser, text, toUser, NULL, time);
+
+        RETURN true;
+    END;
+$$ LANGUAGE plpgsql;

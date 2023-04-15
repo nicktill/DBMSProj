@@ -1,8 +1,7 @@
 import java.util.Scanner;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.io.FileReader;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -924,7 +923,78 @@ public class BeSocial {
     // relation. The user
     // * should lastly be shown success or failure feedback.
     public static void sendMessageToUser() {
-        // * write code for sendMessageToUser here
+        // Prompt for friend to send message to
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(
+                "SELECT * FROM friend WHERE (userID1=" + userID + ") OR (userID2=" + userID + ");"
+            );
+            if (!rs.next()) {
+                System.out.println("You have no friends.");
+                return;
+            }
+            
+            do {
+                int friendID = rs.getInt("userID1");
+                if (friendID == userID) {
+                    friendID = rs.getInt("userID2");
+                }
+                System.out.printf("User ID: %d", friendID);
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error getting the list of friends");
+            return;
+        }
+
+        // Get friend to send message to
+        System.out.println("Enter the userID of the friend you would like to message.");
+        int fID = sc.nextInt();
+        
+        // Get name of the friend
+        String friendName = "";
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT name FROM profile WHERE userID=?;");
+            s.setInt(1, fID);
+            ResultSet rs = s.executeQuery();
+            if (!rs.next()) {
+                System.out.println("This friend does not exist");
+                return;
+            }       
+            friendName = rs.getString("name");
+        } catch (SQLException e) {
+            System.out.println("Error finding friend information");
+            printErrors(e);
+            return;
+        }
+
+        // Get the message to send
+        System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName + ", ending with 'END' on a new line:\n");
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            if (line.equals("END")) {
+                break;
+            }
+            sb.append(line).append("\n");
+        }
+
+        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
+
+        // Send the message
+        try {
+            CallableStatement c = conn.prepareCall("{ ? = call sendMessageToUser(?, ?, ?)}");
+            c.setInt(1, userID);
+            c.setInt(2, fID);
+            c.setString(3, message);
+            c.registerOutParameter(1, Types.BOOLEAN);
+            boolean res = c.execute();
+            if (res) {
+                System.out.println("Message successfully sent!");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error sending message");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 12
@@ -985,7 +1055,7 @@ public class BeSocial {
             sb.append(line).append("\n");
         }
         
-        String message = sb.toString().substring(0, Math.min(sb.length(), 200));;
+        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
 
         // Call pgsql function that will send the msg to everyone in a given group
         // Java try-with-resources automatically closes the connection and callable statement
