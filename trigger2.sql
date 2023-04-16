@@ -393,3 +393,45 @@ $$
         end if;
     end;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getFriends(uID INT)
+RETURNS TABLE (friendID INT, name VARCHAR(50)) AS
+$$
+    BEGIN
+        -- Get all friends of the user and their respective information
+        RETURN QUERY
+        (
+        SELECT F.userid2, P.name
+        FROM friend F JOIN profile P ON F.userid2 = P.userid
+        WHERE F.userid1 = uID
+        )
+        UNION
+        (
+        SELECT F.userid1, P.name
+        FROM friend F JOIN profile P ON F.userid1 = P.userid
+        WHERE F.userid2 = uID
+        );
+    end;
+$$ LANGUAGE plpgsql;
+
+-- Returns profile information of a specified friend
+CREATE OR REPLACE FUNCTION getFriendInfo(userID INT, friendID INT)
+RETURNS SETOF profile AS
+$$
+    DECLARE
+        rec_friend friend%ROWTYPE := NULL;
+    BEGIN
+        -- Validate that the user is actually a friend
+        SELECT * INTO rec_friend
+        FROM friend
+        WHERE (userid1=getFriendInfo.userID AND userid2=friendID) OR (userid2=getFriendInfo.userID AND userid1=friendID);
+
+        -- Raise exception
+        IF rec_friend IS NULL THEN
+            RAISE EXCEPTION 'This user is not a friend of the logged in account' USING ERRCODE='00001';
+        end if;
+
+        -- Safe to return result
+        RETURN QUERY SELECT * FROM profile P WHERE P.userid=getFriendInfo.friendID;
+    end;
+$$ LANGUAGE plpgsql;

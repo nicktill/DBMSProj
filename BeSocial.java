@@ -1178,6 +1178,64 @@ public class BeSocial {
     // * friend's profile or return to the main menu.
     public static void displayFriends() {
         // * write code for displayFriends here
+        // List all friends of the user
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriends(?);");
+            s.setInt(1, userID);
+            ResultSet rs = s.executeQuery();
+            if (!rs.next()) {
+                System.out.println("You have no friends.");
+                return;
+            }
+
+            do {
+                // Print out each profile
+                System.out.println(
+                    String.format("User ID: %d\tName: %s", 
+                        rs.getInt("friendID"), 
+                        rs.getString("name"))
+                );
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error accessing user's friends");
+            printErrors(e);
+        }
+
+        System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+        int profileID = 0;
+        profileID = sc.nextInt();
+        sc.nextLine(); // Clear the buffer
+
+        while (profileID > 0) {
+            // Retrieve friend information and print it
+            try {
+                PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriendInfo(?, ?);");
+                s.setInt(1, userID);
+                s.setInt(2, profileID);
+                ResultSet rs = s.executeQuery();
+
+                // Exception would have been thrown if there was no friend 
+                rs.next();
+                String output = "User ID: %d\nName: %s\nEmail: %s\nLast login: %s\n";
+                System.out.printf(output, 
+                    rs.getInt("userID"), 
+                    rs.getString("name"), 
+                    rs.getString("email"),
+                    rs.getTimestamp("lastlogin")
+                );
+            } catch (SQLException e) {
+                if (e.getErrorCode() == 1) {
+                    System.out.println("This user is not a friend of the logged in account or does not exist.");
+                } else {
+                    printErrors(e);
+                }
+            }
+            
+            // Get give user option to enter input again
+            System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+            profileID = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
+        }
     }
 
     // TODO CASE 16
