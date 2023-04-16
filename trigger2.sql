@@ -169,17 +169,18 @@ END;
 $$ LANGUAGE plpgsql;
 -- ! WORK IN PROGRESS
 */
-/*
-CREATE OR REPLACE FUNCTION addFriendRequest(from INT, to INT, text VARCHAR(200))
+
+-- Adds a friend request for a user
+CREATE OR REPLACE FUNCTION addFriendRequest(fromUser INT, toUser INT, text VARCHAR(200))
 RETURNS BOOLEAN AS
 $$
 DECLARE
 
 BEGIN
     IF text IS NOT NULL THEN
-        INSERT INTO pendingFriend VALUES (from, to);
+        INSERT INTO pendingFriend VALUES (fromUser, toUser, text);
     ELSE
-        INSERT INTO pendingFriend VALUES (from, to, text);
+        INSERT INTO pendingFriend VALUES (fromUser, toUser);
     END IF;
     
     RETURN TRUE;
@@ -188,8 +189,6 @@ BEGIN
         RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
-
- */
 
 -- Change timestamp in groupMember for new insert
 
@@ -222,9 +221,9 @@ AS
 $$
     BEGIN
         IF requestText IS NULL THEN
-            INSERT INTO pendinggroupmember VALUES (gID, uID);
+            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, (SELECT pseudo_time FROM clock));
         ELSE
-            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText);
+            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, requestText, (SELECT pseudo_time FROM clock));
         END IF;
     END;
 $$ LANGUAGE plpgsql;
@@ -304,7 +303,8 @@ BEGIN
         -- There is also a trigger which handles inserting into messageRecipient table
     FOR member_record IN SELECT userID FROM groupMember WHERE gID = group_ID AND userID != user_ID
     LOOP
-        INSERT INTO message VALUES(NULL, user_ID, messageText, member_record.userID, group_ID, NULL);
+        INSERT INTO message VALUES(-1, user_ID, messageText, member_record.userID, group_ID, '2022-01-01 00:00:00');
+        -- TODO: Address changes to message id and time with steven
     END LOOP;
 
     RETURN true;
@@ -324,8 +324,7 @@ $$
         -- Make sure that the user is in the group
         SELECT G.gid INTO groupNum
         FROM groupmember AS G
-        WHERE G.userid=leaveGroup.userID AND G.gid=leaveGroup.gID
-        FOR UPDATE OF pendinggroupmember, groupmember;
+        WHERE G.userid=leaveGroup.userID AND G.gid=leaveGroup.gID;
 
         IF groupNum IS NULL THEN
             RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
@@ -357,8 +356,7 @@ $$
     BEGIN
         -- Get the max user id
         SELECT MAX(msgid) INTO maxMessage
-        FROM message
-        FOR UPDATE OF message; -- Use for synchronization
+        FROM message;
 
         IF maxMessage IS NULL THEN
             maxMessage := 0;

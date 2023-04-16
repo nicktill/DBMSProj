@@ -404,11 +404,12 @@ public class BeSocial {
     public static void initiateFriendship() {
         System.out.print("Enter the userID of the friend you want to request: ");
         int toID = sc.nextInt();
+        sc.nextLine(); // Clear buffer
 
         // Get the user entry and confirm the operation with the user
         try {
             PreparedStatement statement = conn.prepareStatement(
-                "SELECT * FROM user WHERE userID = ?;"
+                "SELECT * FROM profile WHERE userID = ?;"
             );
             statement.setInt(1, toID);
             ResultSet rs = statement.executeQuery();
@@ -434,8 +435,9 @@ public class BeSocial {
         if (req.equals("")) req = null;
         try {
             CallableStatement func = conn.prepareCall("{ ? = call addFriendRequest(?, ?, ?) }");
-            func.setInt(1, userID);
-            func.setInt(2, toID);
+            func.setInt(2, userID);
+            func.setInt(3, toID);
+            func.setString(4, req);
             func.registerOutParameter(1, Types.BOOLEAN);
             func.execute();
 
@@ -832,8 +834,9 @@ public class BeSocial {
                 return;
             }
 
-            System.out.println("Enter the group ID which you would like to leave: ");
+            System.out.print("Enter the group ID which you would like to leave: ");
             groupToLeave = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
         } catch (SQLException e) {
             printErrors(e);
         }
@@ -842,14 +845,17 @@ public class BeSocial {
         try {
             // Set auto commit to false
             conn.setAutoCommit(false);
-            PreparedStatement pStatement = conn.prepareStatement("{ call leaveGroup(?, ?) }");
+            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)");
             pStatement.setInt(1, userID);
             pStatement.setInt(2, groupToLeave);
             pStatement.execute();
+            conn.commit();
         } catch (SQLException e) {
             if (e.getErrorCode() == 1) {
                 System.out.println("ERROR: " + e.getMessage());
             }
+            System.out.println(e.getErrorCode());
+            printErrors(e);
             try {
                 conn.rollback();
             } catch (SQLException e2) {
@@ -939,7 +945,7 @@ public class BeSocial {
                 if (friendID == userID) {
                     friendID = rs.getInt("userID2");
                 }
-                System.out.printf("User ID: %d", friendID);
+                System.out.printf("User ID: %d\n", friendID);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error getting the list of friends");
@@ -947,7 +953,7 @@ public class BeSocial {
         }
 
         // Get friend to send message to
-        System.out.println("Enter the userID of the friend you would like to message.");
+        System.out.print("Enter the userID of the friend you would like to message: ");
         int fID = sc.nextInt();
         
         // Get name of the friend
@@ -968,7 +974,7 @@ public class BeSocial {
         }
 
         // Get the message to send
-        System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName + ", ending with 'END' on a new line:\n");
+        System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName + ", ending with 'END' on a new line:");
         StringBuilder sb = new StringBuilder();
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
@@ -982,18 +988,35 @@ public class BeSocial {
 
         // Send the message
         try {
+            conn.setAutoCommit(false);
+            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             CallableStatement c = conn.prepareCall("{ ? = call sendMessageToUser(?, ?, ?)}");
-            c.setInt(1, userID);
-            c.setInt(2, fID);
-            c.setString(3, message);
+            c.setInt(2, userID);
+            c.setInt(3, fID);
+            c.setString(4, message);
             c.registerOutParameter(1, Types.BOOLEAN);
             boolean res = c.execute();
             if (res) {
                 System.out.println("Message successfully sent!");
             }
+            conn.commit();
         } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println(ex.getMessage());
+                endProgram();
+            }
             System.out.println("Error sending message");
             printErrors(e);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+                conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            } catch (SQLException e) {
+                System.out.println("Error setting auto commit back to true");
+                printErrors(e);
+            }
         }
     }
 
