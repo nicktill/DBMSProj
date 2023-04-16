@@ -372,3 +372,24 @@ $$
         RETURN true;
     END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
+RETURNS TABLE (msgID INT, messageBody VARCHAR(200), timeSent TIMESTAMP) AS
+$$
+    BEGIN
+        IF newMsg THEN
+            -- Get all messages sent to the user after they logged in
+            RETURN QUERY
+                SELECT M.msgid, M.messagebody, M.timesent
+                FROM messagerecipient AS MR NATURAL JOIN message AS M
+                WHERE MR.userid=toUser AND M.timesent > (SELECT lastlogin FROM profile WHERE userid = toUser)
+                ORDER BY M.timesent;
+        ELSE
+            RETURN QUERY
+                SELECT M.msgid, M.messagebody, M.timesent
+                FROM messagerecipient AS MR NATURAL JOIN message AS M
+                WHERE MR.userid=toUser
+                ORDER BY M.timesent;
+        end if;
+    end;
+$$ LANGUAGE plpgsql;

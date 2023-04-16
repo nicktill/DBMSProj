@@ -1,7 +1,6 @@
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.io.FileReader;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -1105,7 +1104,31 @@ public class BeSocial {
     // sent to the user (including group messages)
     // *should be displayed in a nicely formatted way.
     public static void displayMessages() {
-        // * write code for displayMessages here
+        // TODO: Clarify if we should also display who sent it
+        try {
+            // Execute query
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getMessages(?, ?);");
+            s.setInt(1, userID);
+            s.setBoolean(2, false);
+            ResultSet rs = s.executeQuery();
+
+            // Now format the results
+            if (!rs.next()) {
+                System.out.println("You have no messages");
+                return;
+            }
+
+            System.out.println();
+
+            int i = 1;
+            do {
+                // Print formatted message
+                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error retrieving messages.");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 14
@@ -1115,7 +1138,30 @@ public class BeSocial {
     // displayed (including
     // * group messages).
     public static void displayNewMessages() {
-        // * write code for displayNewMessages here
+        try {
+            // Execute query
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getMessages(?, ?);");
+            s.setInt(1, userID);
+            s.setBoolean(2, true);
+            ResultSet rs = s.executeQuery();
+
+            // Now format the results
+            if (!rs.next()) {
+                System.out.println("You have no new messages");
+                return;
+            }
+
+            System.out.println();
+
+            int i = 1;
+            do {
+                // Print formatted message
+                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error retrieving messages.");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 15
