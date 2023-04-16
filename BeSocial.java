@@ -25,7 +25,7 @@ import java.util.Properties;
 public class BeSocial {
     private static Scanner sc;
     private static Connection conn;
-    public static int userID = -1;
+    private static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
     private static String userName = null;
@@ -1294,7 +1294,36 @@ public class BeSocial {
     // considered in this
     // * function.
     public static void topMessages() {
-        // write code for topMessages here
+        System.out.print("Enter the number of months you want the search to go back: ");
+        int x = sc.nextInt();
+        sc.nextLine();
+        System.out.print("Enter the top k message senders you would like to see: ");
+        int k = sc.nextInt();
+        sc.nextLine();
+
+        try {
+            PreparedStatement p = conn.prepareStatement("SELECT * FROM topMessages(?, ?, ?);");
+            p.setInt(1, userID);
+            p.setInt(2, k);
+            p.setInt(3, x);
+            ResultSet rs = p.executeQuery();
+            int remaining = k;
+            while (remaining > 0 && rs.next()) {
+                System.out.println(String.format("User ID: %d\tYou had %d messages sent with each other.", 
+                    rs.getInt("recipient"), 
+                    rs.getLong("mCount"))
+                );
+                remaining--;
+                // TODO: Clarify what how ties should be handled
+            }
+
+            if (remaining == k) {
+                System.out.println("No users have sent messages to you.");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error accessing message data");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 19

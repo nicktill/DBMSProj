@@ -435,3 +435,56 @@ $$
         RETURN QUERY SELECT * FROM profile P WHERE P.userid=getFriendInfo.friendID;
     end;
 $$ LANGUAGE plpgsql;
+
+-- CREATE OR REPLACE FUNCTION rankProfiles()
+-- RETURNS TABLE (rank INT, numFriends INT, id INT, name VARCHAR(50)) AS
+-- $$
+--     DECLARE
+--
+--     BEGIN
+--         -- Get number of friends for every users
+--         -- This is done by summing the two counts of both sides of the friend relationship
+--         SELECT COUNT(userid2)
+--         FROM friend
+--         GROUP BY userid1;
+--
+--         SELECT COUNT(userid1)
+--         FROM friend
+--         GROUP BY userid2;
+--
+--         -- Combine to get table of
+--     end;
+-- $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION topMessages(uID INT, k INT, x INT)
+RETURNS TABLE (recipient INT, mCount BIGINT, rank BIGINT) AS
+$$
+    DECLARE
+        startDate TIMESTAMP;
+        cur_time TIMESTAMP;
+
+    BEGIN
+        -- Get the current time
+        SELECT pseudo_time INTO cur_time FROM clock;
+
+        -- Calculate the furthest back date
+        SELECT cur_time - ((x * 30) || ' days')::INTERVAL INTO startDate;
+
+        -- Yay large query
+        RETURN QUERY
+            SELECT rec, (coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0)) as msgCount, RANK() OVER (ORDER BY msgCount) AS rank
+            FROM (
+                    SELECT M.fromid AS rec, COUNT(M.msgid) AS msgCount
+                    FROM message M
+                    WHERE M.touserid=uID AND M.timesent BETWEEN startDate AND cur_time
+                    GROUP BY rec
+                ) CT NATURAL FULL OUTER JOIN (
+                    SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
+                    FROM message M
+                    WHERE M.fromid=uID AND M.timesent BETWEEN startDate AND cur_time AND M.touserid IS NOT NULL
+                    GROUP BY rec
+                ) CF
+            ORDER BY rank;
+        -- TODO: See if fetching can be done here
+    end;
+$$ LANGUAGE plpgsql;
