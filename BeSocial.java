@@ -80,16 +80,6 @@ public class BeSocial {
                 displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
-                // boolean validInput = false;
-                // while (!validInput) {
-                //     String inputStr = sc.nextLine();
-                //     try {
-                //         userInput = Integer.parseInt(inputStr);
-                //         validInput = true;
-                //     } catch (NumberFormatException e) {
-                //         System.out.println("Invalid input. Please enter a number.");
-                //     }
-                // }
                 userInput = Integer.parseInt(sc.nextLine());
 
 
