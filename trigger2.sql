@@ -152,24 +152,38 @@ CREATE OR REPLACE TRIGGER incrementUserID
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
 
-/*
-CREATE OR REPLACE FUNCTION confirmFriendRequests()
-    RETURNS VOID $$
-    $$ LANGUAGE plpgsql;
-*/
-/*
--- ! WORK IN PROGRESS
-CREATE OR REPLACE FUNCTION listPendingFriends(int userID)
-    RETURNS SETOF pendingFriend 
+-- add to trigger2.sql
+
+-- IF EXISTS ALREADY DROP
+ DROP FUNCTION IF EXISTS listPendingFriends(integer);
+-- * tested and works
+CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
+    RETURNS TABLE(requestText text, fromID integer)
     AS
 $$
 BEGIN
-    RETURN QUERY SELECT requestText FROM pendingFriend WHERE toID = userID;
+    -- cast to text because of the way postgres handles text
+    RETURN QUERY SELECT pf.requestText::text AS requestText, pf.fromID AS fromID FROM pendingFriend pf WHERE pf.toID = userID;
+END;
+$$ 
+LANGUAGE plpgsql;
+
+
+-- * works (could use more testing)
+CREATE OR REPLACE FUNCTION deletePending()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    DELETE FROM pendingFriend WHERE fromID = NEW.userID1 AND toID = NEW.userID2;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
--- ! WORK IN PROGRESS
-*/
 
+CREATE OR REPLACE TRIGGER deletePendingFriendAfterInsert
+    AFTER INSERT
+    ON friend
+    FOR EACH ROW
+EXECUTE FUNCTION deletePending();
 -- Adds a friend request for a user
 CREATE OR REPLACE FUNCTION addFriendRequest(fromUser INT, toUser INT, text VARCHAR(200))
 RETURNS BOOLEAN AS
