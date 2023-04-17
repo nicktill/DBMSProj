@@ -81,9 +81,6 @@ public class BeSocial {
 
                 System.out.println("Choose an option from the menu: ");
                 userInput = Integer.parseInt(sc.nextLine());
-
-
-
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
                 // loop
@@ -659,6 +656,10 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
             createGroup.setInt(3, membershipLimit);
             createGroup.setString(4, groupDescription);
             createGroup.executeUpdate();
+
+            // Add the user to the group as a manager
+            String createGroupMemberQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, '%s', NULL);", gID, userID, "manager");
+            st.executeUpdate(createGroupMemberQuery);
 
             // Commit both at once - chicken and egg
             conn.commit();
@@ -1353,34 +1354,32 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     }
 
     // TODO CASE 16
-    // * This task should produce a ranked list of groups based on their number of
-    // members.
-    // * In the event that there are no groups in the system, a message No Groups
-    // to Rank should
+    // * This task should produce a ranked list of groups based on their number of members.
+    // * In the event that there are no groups in the system, a message No Groups to Rank should
     // * be displayed to the user.
     public static void rankGroups() {
-        // ! ** WORK IN PROGRESS - NOT COMPLETE **
-        // USE LEFT JOIN instead of a natural join (INNER JOIN) in this case is very
-        // important
-        // it will ensure that all groups from the groupInfo table are included in the
-        // result, even if they have no members in the groupMember table. (i.e empty
-        // groups)
+        // * USE LEFT JOIN instead of a natural join (INNER JOIN) in this case is very important
+        // * it will ensure that all groups from the groupInfo table are included in the
+        // * result, even if they have no members in the groupMember table. (i.e empty groups)
         String rankGroupsStatement = "SELECT g.gID, g.name, COUNT(gm.userID) AS member_count " +
                 "FROM groupInfo g " +
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
                 "GROUP BY g.gID, g.name " +
                 "ORDER BY member_count DESC, g.gID";
-    
         try {
             PreparedStatement rankGroups = conn.prepareStatement(rankGroupsStatement);
             ResultSet rs = rankGroups.executeQuery();
-            System.out.println("Group ID\tGroup Name\tNumber of Members");
-            if (rs.next()) {
-                System.out.println(
-                        rs.getString("gID") + "\t" + rs.getString("name") + "\t" + rs.getString("member_count"));
-            } else {
+            System.out.println(String.format("%-10s %-30s %-20s", "Group ID", "Group Name", "Number of Members"));
+            if (!rs.next()) {
                 System.out.println("No Groups to Rank");
             }
+            while (rs.next()) {
+                System.out.println(String.format("%-10s %-30s %-20s",
+                        rs.getString("gID"),
+                        rs.getString("name"),
+                        rs.getString("member_count")));
+            }
+            
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
