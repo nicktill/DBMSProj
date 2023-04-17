@@ -1,6 +1,8 @@
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.sql.*;
+import java.util.ArrayList;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -79,7 +81,6 @@ public class BeSocial {
 
                 System.out.println("Choose an option from the menu: ");
                 userInput = Integer.parseInt(sc.nextLine());
-
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
                 // loop
@@ -468,28 +469,137 @@ public class BeSocial {
     // * In the event that the user has no pending friend requests, a message No
     // Pending Friend
     // * Requests should be displayed to the user.
-    public static void confirmFriendRequests(int userID) {
-        try{
-            String query = "SELECT * FROM listPendingFriends(?);";
-            PreparedStatement statement = conn.prepareStatement(query);
-            statement.setInt(1, userID);
-
-            // Execute the query and process the results
-            ResultSet rs = statement.executeQuery();
-            int i = 1;
-            while (rs.next()) {
-                String requestText = rs.getString("requestText");
-                int pendingFromID = rs.getInt("toID");
-                System.out.println(i + "." +  userID + "\t" + requestText + pendingFromID); //1. UserID: ID,  requestText: requestTExt
-                i++;
-            }
+ //add to jonah branch and test
+public static void confirmFriendRequests(int userID) {
+    try {
+        String query = "SELECT * FROM listPendingFriends(?);";
+        PreparedStatement listFriendsStatement = conn.prepareStatement(query);
+        listFriendsStatement.setInt(1, userID);
+        // Execute the query and process the results
+        ResultSet rs = listFriendsStatement.executeQuery();
+        List<Integer> fromIDs = new ArrayList<>();
+        int i = 1;
+        while (rs.next()) {
+            String requestText = rs.getString("requestText");
+            int fromID = rs.getInt("fromID");
+            System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
+            fromIDs.add(fromID); //add current fromID to list for use later
+            i++;
         }
-      catch (SQLException e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
+
+        //if no pending friend requests exist
+        if (fromIDs.isEmpty()) {
+            System.out.println("No Pending Friend Requests");
+            return;
+        }
+        //otherwise continue with accepting friend requests
+        //prompt user to accept all requests or one at a time
+        System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
+                "1. Accept all requests\n" +
+                "2. Specify one request at a time\n");
+        int choice = sc.nextInt();
+        sc.nextLine();
+        //validate input
+        while (choice != 1 && choice != 2) {
+            System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+                    "1. Accept all requests\n" +
+                    "2. Specify one request at a time\n");
+            choice = sc.nextInt();
+            sc.nextLine();
+        }
+
+        //accept all requests
+        if (choice == 1) {
+            // accept all requests
+            for (int fromID : fromIDs) {
+                acceptFriendRequest(userID, fromID);
+            }
+            System.out.println("Accepted all requests");
+        } else if (choice == 2) {
+            // accept one request at a time
+            System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+            int fromID = sc.nextInt();
+            sc.nextLine();
+            while (fromID != -1) {
+                //validate input
+                while (!fromIDs.contains(fromID)) {
+                    System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+                    fromID = sc.nextInt();
+                    sc.nextLine();
+                }
+                //accept request
+                acceptFriendRequest(userID, fromID);
+                System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                fromID = sc.nextInt();
+                sc.nextLine();
+            }
+    
+        }
+        // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
+        String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
+        PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
+        removeDeclinedReqsStatement.setInt(1, userID);
+        removeDeclinedReqsStatement.executeUpdate();
+        removeDeclinedReqsStatement.close();
+        System.out.print("All other requeste deleted, leaving menu...\n");
+        return;
+
+        
+    } catch (SQLException e) {
+        System.err.println("Error: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+// * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
+public static void acceptFriendRequest(int userID1, int userID2) throws SQLException {
+    try {
+        // GRAB CLOCK TIME
+        String clockQuery = "SELECT pseudo_time FROM clock;";
+        PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
+        ResultSet clockInfo = clockQueryStatement.executeQuery();
+        if(!clockInfo.next()) {
+            System.out.println("Error: No clock time found");
+            return;
+        }
+        Timestamp clockTime = clockInfo.getTimestamp("pseudo_time");
+
+        // GRAB REQUEST TEXT
+        String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+        PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
+        reqTextStatement.setInt(1, userID1);
+        reqTextStatement.setInt(2, userID2);
+        ResultSet reqTextInfo = reqTextStatement.executeQuery();
+        String requestText = null;
+        if (reqTextInfo.next()) {
+            requestText = reqTextInfo.getString("requestText");
+        }
+       
+        if (requestText == null) {
+                // ADD Friend with no request text
+                String addPendingFriendWithNoReqText = "INSERT INTO friend (userID1, userID2, JDate) VALUES(?, ?, ?);";
+                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+                addPendingFriendStatement.setInt(1, userID1);
+                addPendingFriendStatement.setInt(2, userID2);
+                addPendingFriendStatement.setTimestamp(3, clockTime);
+                addPendingFriendStatement.executeUpdate();
+        }
+        else{
+            // ADD Friend with custom request text
+            String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
+            PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
+            addPendingFriendStatement.setInt(1, userID1);
+            addPendingFriendStatement.setInt(2, userID2);
+            addPendingFriendStatement.setTimestamp(3, clockTime);
+            addPendingFriendStatement.setString(4, requestText);
+            addPendingFriendStatement.executeUpdate();
         }
 
     }
+    catch (SQLException e) {
+        // print error message
+        System.err.println("Error: " + e.getMessage());
+    }
+}
 
     // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
@@ -546,6 +656,10 @@ public class BeSocial {
             createGroup.setInt(3, membershipLimit);
             createGroup.setString(4, groupDescription);
             createGroup.executeUpdate();
+
+            // Add the user to the group as a manager
+            String createGroupMemberQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, '%s', NULL);", gID, userID, "manager");
+            st.executeUpdate(createGroupMemberQuery);
 
             // Commit both at once - chicken and egg
             conn.commit();
@@ -953,6 +1067,7 @@ public class BeSocial {
         // Get friend to send message to
         System.out.print("Enter the userID of the friend you would like to message: ");
         int fID = sc.nextInt();
+        sc.nextLine(); // Clear the buffer
         
         // Get name of the friend
         String friendName = "";
@@ -1238,34 +1353,32 @@ public class BeSocial {
     }
 
     // TODO CASE 16
-    // * This task should produce a ranked list of groups based on their number of
-    // members.
-    // * In the event that there are no groups in the system, a message No Groups
-    // to Rank should
+    // * This task should produce a ranked list of groups based on their number of members.
+    // * In the event that there are no groups in the system, a message No Groups to Rank should
     // * be displayed to the user.
     public static void rankGroups() {
-        // ! ** WORK IN PROGRESS - NOT COMPLETE **
-        // USE LEFT JOIN instead of a natural join (INNER JOIN) in this case is very
-        // important
-        // it will ensure that all groups from the groupInfo table are included in the
-        // result, even if they have no members in the groupMember table. (i.e empty
-        // groups)
+        // * USE LEFT JOIN instead of a natural join (INNER JOIN) in this case is very important
+        // * it will ensure that all groups from the groupInfo table are included in the
+        // * result, even if they have no members in the groupMember table. (i.e empty groups)
         String rankGroupsStatement = "SELECT g.gID, g.name, COUNT(gm.userID) AS member_count " +
                 "FROM groupInfo g " +
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
                 "GROUP BY g.gID, g.name " +
                 "ORDER BY member_count DESC, g.gID";
-    
         try {
             PreparedStatement rankGroups = conn.prepareStatement(rankGroupsStatement);
             ResultSet rs = rankGroups.executeQuery();
-            System.out.println("Group ID\tGroup Name\tNumber of Members");
-            if (rs.next()) {
-                System.out.println(
-                        rs.getString("gID") + "\t" + rs.getString("name") + "\t" + rs.getString("member_count"));
-            } else {
+            System.out.println(String.format("%-10s %-30s %-20s", "Group ID", "Group Name", "Number of Members"));
+            if (!rs.next()) {
                 System.out.println("No Groups to Rank");
             }
+            while (rs.next()) {
+                System.out.println(String.format("%-10s %-30s %-20s",
+                        rs.getString("gID"),
+                        rs.getString("name"),
+                        rs.getString("member_count")));
+            }
+            
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
