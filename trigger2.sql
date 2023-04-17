@@ -155,8 +155,7 @@ EXECUTE FUNCTION increment_pid();
 
 -- IF EXISTS ALREADY DROP
  DROP FUNCTION IF EXISTS listpendingfriends(integer);
-
--- ! maybe working (not sure how to test) -nick
+-- * tested and works
 CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
     RETURNS TABLE(requestText text, fromID integer)
     AS
@@ -169,26 +168,21 @@ $$
 LANGUAGE plpgsql;
 
 
-
-
--- ! maybe working (not sure how to test) -nick
+-- * works (needs more testing)
 CREATE OR REPLACE FUNCTION deletePending()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    DELETE FROM pendingFriend WHERE fromID = NEW.fromID AND toID = NEW.toID;
+    DELETE FROM pendingFriend WHERE fromID = NEW.userID1 AND toID = NEW.userID2;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- ! maybe working (not sure how to test) -nick
 CREATE OR REPLACE TRIGGER deletePendingFriendAfterInsert
     AFTER INSERT
     ON friend
     FOR EACH ROW
 EXECUTE FUNCTION deletePending();
-
-
 
 -- Change timestamp in groupMember for new insert
 CREATE OR REPLACE FUNCTION createMember()

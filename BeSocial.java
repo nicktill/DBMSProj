@@ -39,10 +39,10 @@ public class BeSocial {
 
         // Try and get the username and password from the user to access the database
         try {
-            System.out.print("User your username for the database: ");
+            System.out.print("Enter your username for the database: ");
             databaseUsername = sc.nextLine();
 
-            System.out.print("User your password for the database: ");
+            System.out.print("Enter your password for the database: ");
             databasePassword = sc.nextLine();
         } catch (Exception e) {
             System.out.println("Error retrieving username and password");
@@ -520,7 +520,6 @@ public class BeSocial {
                     fromID = sc.nextInt();
                 }
         
-                
             }
             // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
             String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
@@ -528,7 +527,11 @@ public class BeSocial {
             removeDeclinedReqsStatement.setInt(1, userID);
             removeDeclinedReqsStatement.executeUpdate();
             removeDeclinedReqsStatement.close();
-            System.out.print("Exiting menu...\n");
+            System.out.print("All other requeste deleted, leaving menu...\n");
+            
+            return;
+
+
             
         } catch (SQLException e) {
             System.err.println("Error: " + e.getMessage());
@@ -536,7 +539,7 @@ public class BeSocial {
         }
     }
     // * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
-    public static void acceptFriendRequest(int userID, int fromID) throws SQLException {
+    public static void acceptFriendRequest(int userID1, int userID2) throws SQLException {
         try {
             // GRAB CLOCK TIME
             String clockQuery = "SELECT pseudo_time FROM clock;";
@@ -548,33 +551,31 @@ public class BeSocial {
             // GRAB REQUEST TEXT
             String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
             PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
-            reqTextStatement.setInt(1, fromID);
-            reqTextStatement.setInt(2, userID);
+            reqTextStatement.setInt(1, userID1);
+            reqTextStatement.setInt(2, userID2);
             ResultSet reqTextInfo = reqTextStatement.executeQuery();
             reqTextInfo.next(); 
             String requestText = reqTextInfo.getString("requestText");
             
             if (requestText == null) {
                     // ADD Friend with no request text
-                    String addPendingFriendWithNoReqText = "INSERT INTO friend (fromID, toID, JDate) VALUES(?, ?, ?);";
+                    String addPendingFriendWithNoReqText = "INSERT INTO friend (userID1, userID2, JDate) VALUES(?, ?, ?);";
                     PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
-                    addPendingFriendStatement.setInt(1, userID);
-                    addPendingFriendStatement.setInt(2, fromID);
+                    addPendingFriendStatement.setInt(1, userID1);
+                    addPendingFriendStatement.setInt(2, userID2);
                     addPendingFriendStatement.setTimestamp(3, clockTime);
                     addPendingFriendStatement.executeUpdate();
             }
             else{
                 // ADD Friend with custom request text
-                String addPendingFriendWithReqText = "INSERT INTO friend (fromID, toID, JDate, reqText) VALUES(?, ?, ?, ?);";
+                String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
                 PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
-                addPendingFriendStatement.setInt(1, userID);
-                addPendingFriendStatement.setInt(2, fromID);
+                addPendingFriendStatement.setInt(1, userID1);
+                addPendingFriendStatement.setInt(2, userID2);
                 addPendingFriendStatement.setTimestamp(3, clockTime);
                 addPendingFriendStatement.setString(4, requestText);
                 addPendingFriendStatement.executeUpdate();
-                
             }
-
         }
         catch (SQLException e) {
             // print error message
@@ -609,7 +610,6 @@ public class BeSocial {
         } catch (Exception e) {}
         
         try {
-            
             // Make sure it is atomic so that there can be no race condition in making the gID
             conn.setAutoCommit(false);
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
