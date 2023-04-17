@@ -90,9 +90,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- addMember trigger
-CREATE OR REPLACE TRIGGER updateGroup
+DROP TRIGGER IF EXISTS updateGroup ON groupmember CASCADE;
+CREATE CONSTRAINT TRIGGER updateGroup
     AFTER DELETE
     ON groupMember
+    DEFERRABLE INITIALLY IMMEDIATE
     FOR EACH ROW
 EXECUTE FUNCTION update_group();
 
@@ -150,34 +152,49 @@ CREATE OR REPLACE TRIGGER incrementUserID
     FOR EACH ROW
 EXECUTE FUNCTION increment_pid();
 
-/*
-CREATE OR REPLACE FUNCTION confirmFriendRequests()
-    RETURNS VOID $$
-    $$ LANGUAGE plpgsql;
-*/
-/*
--- ! WORK IN PROGRESS
-CREATE OR REPLACE FUNCTION listPendingFriends(int userID)
-    RETURNS SETOF pendingFriend 
+-- add to trigger2.sql
+
+-- IF EXISTS ALREADY DROP
+ DROP FUNCTION IF EXISTS listPendingFriends(integer);
+-- * tested and works
+CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
+    RETURNS TABLE(requestText text, fromID integer)
     AS
 $$
 BEGIN
-    RETURN QUERY SELECT requestText FROM pendingFriend WHERE toID = userID;
+    -- cast to text because of the way postgres handles text
+    RETURN QUERY SELECT pf.requestText::text AS requestText, pf.fromID AS fromID FROM pendingFriend pf WHERE pf.toID = userID;
+END;
+$$ 
+LANGUAGE plpgsql;
+
+
+-- * works (could use more testing)
+CREATE OR REPLACE FUNCTION deletePending()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    DELETE FROM pendingFriend WHERE fromID = NEW.userID1 AND toID = NEW.userID2;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
--- ! WORK IN PROGRESS
-*/
-/*
-CREATE OR REPLACE FUNCTION addFriendRequest(from INT, to INT, text VARCHAR(200))
+
+CREATE OR REPLACE TRIGGER deletePendingFriendAfterInsert
+    AFTER INSERT
+    ON friend
+    FOR EACH ROW
+EXECUTE FUNCTION deletePending();
+-- Adds a friend request for a user
+CREATE OR REPLACE FUNCTION addFriendRequest(fromUser INT, toUser INT, text VARCHAR(200))
 RETURNS BOOLEAN AS
 $$
 DECLARE
 
 BEGIN
     IF text IS NOT NULL THEN
-        INSERT INTO pendingFriend VALUES (from, to);
+        INSERT INTO pendingFriend VALUES (fromUser, toUser, text);
     ELSE
-        INSERT INTO pendingFriend VALUES (from, to, text);
+        INSERT INTO pendingFriend VALUES (fromUser, toUser);
     END IF;
     
     RETURN TRUE;
@@ -186,8 +203,6 @@ BEGIN
         RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
-
- */
 
 -- Change timestamp in groupMember for new insert
 
@@ -220,9 +235,9 @@ AS
 $$
     BEGIN
         IF requestText IS NULL THEN
-            INSERT INTO pendinggroupmember VALUES (gID, uID);
+            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, (SELECT pseudo_time FROM clock));
         ELSE
-            INSERT INTO pendinggroupmember VALUES (gID, uID, requestText);
+            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, requestText, (SELECT pseudo_time FROM clock));
         END IF;
     END;
 $$ LANGUAGE plpgsql;
@@ -302,9 +317,188 @@ BEGIN
         -- There is also a trigger which handles inserting into messageRecipient table
     FOR member_record IN SELECT userID FROM groupMember WHERE gID = group_ID AND userID != user_ID
     LOOP
-        INSERT INTO message VALUES(NULL, user_ID, messageText, member_record.userID, group_ID, NULL);
+        INSERT INTO message VALUES(-1, user_ID, messageText, member_record.userID, group_ID, '2022-01-01 00:00:00');
+        -- TODO: Address changes to message id and time with steven
     END LOOP;
 
     RETURN true;
 END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE PROCEDURE leaveGroup(userID INT, gID INT)
+AS
+$$
+    DECLARE
+        groupNum INT := NULL;
+        rec_pending pendinggroupmember%ROWTYPE := NULL;
+    BEGIN
+        -- Set the constraints to be deferred
+        SET CONSTRAINTS ALL DEFERRED;
+
+        -- Make sure that the user is in the group
+        SELECT G.gid INTO groupNum
+        FROM groupmember AS G
+        WHERE G.userid=leaveGroup.userID AND G.gid=leaveGroup.gID;
+
+        IF groupNum IS NULL THEN
+            RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
+        END IF;
+
+        -- Now remove the group member
+        DELETE FROM groupmember AS g WHERE g.userid = leaveGroup.userID AND g.gid = leaveGroup.gID;
+
+        -- Now add the FIRST member and update their last confirmed time
+        SELECT * INTO rec_pending
+        FROM pendinggroupmember AS P
+        WHERE p.gid=leaveGroup.gID
+        ORDER BY requesttime;
+
+        IF rec_pending IS NOT NULL THEN
+            INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
+            DELETE FROM pendinggroupmember AS P
+                   WHERE P.userid=rec_pending.userid AND P.gid=rec_pending.gid;
+        END IF;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION sendMessageToUser(fromUser INT, toUser INT, text varchar(200))
+RETURNS BOOLEAN AS
+$$
+    DECLARE
+        time timestamp;
+        maxMessage INT;
+    BEGIN
+        -- Get the max user id
+        SELECT MAX(msgid) INTO maxMessage
+        FROM message;
+
+        IF maxMessage IS NULL THEN
+            maxMessage := 0;
+        end if;
+
+        -- Get the time for when the message will be sent
+        SELECT pseudo_time INTO time
+        FROM clock;
+
+        -- Send the message
+        INSERT INTO message VALUES (maxMessage + 1, fromUser, text, toUser, NULL, time);
+
+        RETURN true;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
+RETURNS TABLE (msgID INT, messageBody VARCHAR(200), timeSent TIMESTAMP) AS
+$$
+    BEGIN
+        IF newMsg THEN
+            -- Get all messages sent to the user after they logged in
+            RETURN QUERY
+                SELECT M.msgid, M.messagebody, M.timesent
+                FROM messagerecipient AS MR NATURAL JOIN message AS M
+                WHERE MR.userid=toUser AND M.timesent > (SELECT lastlogin FROM profile WHERE userid = toUser)
+                ORDER BY M.timesent;
+        ELSE
+            RETURN QUERY
+                SELECT M.msgid, M.messagebody, M.timesent
+                FROM messagerecipient AS MR NATURAL JOIN message AS M
+                WHERE MR.userid=toUser
+                ORDER BY M.timesent;
+        end if;
+    end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getFriends(uID INT)
+RETURNS TABLE (friendID INT, name VARCHAR(50)) AS
+$$
+    BEGIN
+        -- Get all friends of the user and their respective information
+        RETURN QUERY
+        (
+        SELECT F.userid2, P.name
+        FROM friend F JOIN profile P ON F.userid2 = P.userid
+        WHERE F.userid1 = uID
+        )
+        UNION
+        (
+        SELECT F.userid1, P.name
+        FROM friend F JOIN profile P ON F.userid1 = P.userid
+        WHERE F.userid2 = uID
+        );
+    end;
+$$ LANGUAGE plpgsql;
+
+-- Returns profile information of a specified friend
+CREATE OR REPLACE FUNCTION getFriendInfo(userID INT, friendID INT)
+RETURNS SETOF profile AS
+$$
+    DECLARE
+        rec_friend friend%ROWTYPE := NULL;
+    BEGIN
+        -- Validate that the user is actually a friend
+        SELECT * INTO rec_friend
+        FROM friend
+        WHERE (userid1=getFriendInfo.userID AND userid2=friendID) OR (userid2=getFriendInfo.userID AND userid1=friendID);
+
+        -- Raise exception
+        IF rec_friend IS NULL THEN
+            RAISE EXCEPTION 'This user is not a friend of the logged in account' USING ERRCODE='00001';
+        end if;
+
+        -- Safe to return result
+        RETURN QUERY SELECT * FROM profile P WHERE P.userid=getFriendInfo.friendID;
+    end;
+$$ LANGUAGE plpgsql;
+
+-- CREATE OR REPLACE FUNCTION rankProfiles()
+-- RETURNS TABLE (rank INT, numFriends INT, id INT, name VARCHAR(50)) AS
+-- $$
+--     DECLARE
+--
+--     BEGIN
+--         -- Get number of friends for every users
+--         -- This is done by summing the two counts of both sides of the friend relationship
+--         SELECT COUNT(userid2)
+--         FROM friend
+--         GROUP BY userid1;
+--
+--         SELECT COUNT(userid1)
+--         FROM friend
+--         GROUP BY userid2;
+--
+--         -- Combine to get table of
+--     end;
+-- $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION topMessages(uID INT, k INT, x INT)
+RETURNS TABLE (recipient INT, mCount BIGINT, rank BIGINT) AS
+$$
+    DECLARE
+        startDate TIMESTAMP;
+        cur_time TIMESTAMP;
+
+    BEGIN
+        -- Get the current time
+        SELECT pseudo_time INTO cur_time FROM clock;
+
+        -- Calculate the furthest back date
+        SELECT cur_time - ((x * 30) || ' days')::INTERVAL INTO startDate;
+
+        -- Yay large query
+        RETURN QUERY
+            SELECT rec, (coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0)) as msgCount, RANK() OVER (ORDER BY msgCount) AS rank
+            FROM (
+                    SELECT M.fromid AS rec, COUNT(M.msgid) AS msgCount
+                    FROM message M
+                    WHERE M.touserid=uID AND M.timesent BETWEEN startDate AND cur_time
+                    GROUP BY rec
+                ) CT NATURAL FULL OUTER JOIN (
+                    SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
+                    FROM message M
+                    WHERE M.fromid=uID AND M.timesent BETWEEN startDate AND cur_time AND M.touserid IS NOT NULL
+                    GROUP BY rec
+                ) CF
+            ORDER BY rank;
+        -- TODO: See if fetching can be done here
+    end;
 $$ LANGUAGE plpgsql;

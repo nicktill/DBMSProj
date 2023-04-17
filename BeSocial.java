@@ -1,8 +1,8 @@
 import java.util.Scanner;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.sql.*;
+import java.util.ArrayList;
 
 // **NOTE** PLEASE USE THE EXTENSION 'BetterNotes' to make this file more readable! **NOTE** 
 
@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
     - TASK 10 - Do we need the entire user profile or just their userID?
+    - TASK 9 - Why not change the lastConfirmed?
  */
 
 import java.sql.*;
@@ -26,7 +27,7 @@ import java.util.Properties;
 public class BeSocial {
     private static Scanner sc;
     private static Connection conn;
-    public static int userID = -1;
+    private static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
     private static String userName = null;
@@ -80,6 +81,8 @@ public class BeSocial {
 
                 System.out.println("Choose an option from the menu: ");
                 userInput = Integer.parseInt(sc.nextLine());
+
+
 
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
@@ -282,7 +285,6 @@ public class BeSocial {
         }
     }
 
-    // TODO: CASE 3
     // * Given email and password, login as the user in the system when an
     // appropriate match is found.
     public static void login() {
@@ -405,11 +407,12 @@ public class BeSocial {
     public static void initiateFriendship() {
         System.out.print("Enter the userID of the friend you want to request: ");
         int toID = sc.nextInt();
+        sc.nextLine(); // Clear buffer
 
         // Get the user entry and confirm the operation with the user
         try {
             PreparedStatement statement = conn.prepareStatement(
-                "SELECT * FROM user WHERE userID = ?;"
+                "SELECT * FROM profile WHERE userID = ?;"
             );
             statement.setInt(1, toID);
             ResultSet rs = statement.executeQuery();
@@ -435,8 +438,9 @@ public class BeSocial {
         if (req.equals("")) req = null;
         try {
             CallableStatement func = conn.prepareCall("{ ? = call addFriendRequest(?, ?, ?) }");
-            func.setInt(1, userID);
-            func.setInt(2, toID);
+            func.setInt(2, userID);
+            func.setInt(3, toID);
+            func.setString(4, req);
             func.registerOutParameter(1, Types.BOOLEAN);
             func.execute();
 
@@ -468,28 +472,137 @@ public class BeSocial {
     // * In the event that the user has no pending friend requests, a message No
     // Pending Friend
     // * Requests should be displayed to the user.
-    public static void confirmFriendRequests(int userID) {
-        try{
-            String query = "SELECT * FROM listPendingFriends(?);";
-            PreparedStatement statement = conn.prepareStatement(query);
-            statement.setInt(1, userID);
-
-            // Execute the query and process the results
-            ResultSet rs = statement.executeQuery();
-            int i = 1;
-            while (rs.next()) {
-                String requestText = rs.getString("requestText");
-                int pendingFromID = rs.getInt("toID");
-                System.out.println(i + "." +  userID + "\t" + requestText + pendingFromID); //1. UserID: ID,  requestText: requestTExt
-                i++;
-            }
+ //add to jonah branch and test
+public static void confirmFriendRequests(int userID) {
+    try {
+        String query = "SELECT * FROM listPendingFriends(?);";
+        PreparedStatement listFriendsStatement = conn.prepareStatement(query);
+        listFriendsStatement.setInt(1, userID);
+        // Execute the query and process the results
+        ResultSet rs = listFriendsStatement.executeQuery();
+        List<Integer> fromIDs = new ArrayList<>();
+        int i = 1;
+        while (rs.next()) {
+            String requestText = rs.getString("requestText");
+            int fromID = rs.getInt("fromID");
+            System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
+            fromIDs.add(fromID); //add current fromID to list for use later
+            i++;
         }
-      catch (SQLException e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
+
+        //if no pending friend requests exist
+        if (fromIDs.isEmpty()) {
+            System.out.println("No Pending Friend Requests");
+            return;
+        }
+        //otherwise continue with accepting friend requests
+        //prompt user to accept all requests or one at a time
+        System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
+                "1. Accept all requests\n" +
+                "2. Specify one request at a time\n");
+        int choice = sc.nextInt();
+        sc.nextLine();
+        //validate input
+        while (choice != 1 && choice != 2) {
+            System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+                    "1. Accept all requests\n" +
+                    "2. Specify one request at a time\n");
+            choice = sc.nextInt();
+            sc.nextLine();
+        }
+
+        //accept all requests
+        if (choice == 1) {
+            // accept all requests
+            for (int fromID : fromIDs) {
+                acceptFriendRequest(userID, fromID);
+            }
+            System.out.println("Accepted all requests");
+        } else if (choice == 2) {
+            // accept one request at a time
+            System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+            int fromID = sc.nextInt();
+            sc.nextLine();
+            while (fromID != -1) {
+                //validate input
+                while (!fromIDs.contains(fromID)) {
+                    System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+                    fromID = sc.nextInt();
+                    sc.nextLine();
+                }
+                //accept request
+                acceptFriendRequest(userID, fromID);
+                System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                fromID = sc.nextInt();
+                sc.nextLine();
+            }
+    
+        }
+        // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
+        String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
+        PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
+        removeDeclinedReqsStatement.setInt(1, userID);
+        removeDeclinedReqsStatement.executeUpdate();
+        removeDeclinedReqsStatement.close();
+        System.out.print("All other requeste deleted, leaving menu...\n");
+        return;
+
+        
+    } catch (SQLException e) {
+        System.err.println("Error: " + e.getMessage());
+        e.printStackTrace();
+    }
+}
+// * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
+public static void acceptFriendRequest(int userID1, int userID2) throws SQLException {
+    try {
+        // GRAB CLOCK TIME
+        String clockQuery = "SELECT pseudo_time FROM clock;";
+        PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
+        ResultSet clockInfo = clockQueryStatement.executeQuery();
+        if(!clockInfo.next()) {
+            System.out.println("Error: No clock time found");
+            return;
+        }
+        Timestamp clockTime = clockInfo.getTimestamp("pseudo_time");
+
+        // GRAB REQUEST TEXT
+        String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+        PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
+        reqTextStatement.setInt(1, userID1);
+        reqTextStatement.setInt(2, userID2);
+        ResultSet reqTextInfo = reqTextStatement.executeQuery();
+        String requestText = null;
+        if (reqTextInfo.next()) {
+            requestText = reqTextInfo.getString("requestText");
+        }
+       
+        if (requestText == null) {
+                // ADD Friend with no request text
+                String addPendingFriendWithNoReqText = "INSERT INTO friend (userID1, userID2, JDate) VALUES(?, ?, ?);";
+                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+                addPendingFriendStatement.setInt(1, userID1);
+                addPendingFriendStatement.setInt(2, userID2);
+                addPendingFriendStatement.setTimestamp(3, clockTime);
+                addPendingFriendStatement.executeUpdate();
+        }
+        else{
+            // ADD Friend with custom request text
+            String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
+            PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
+            addPendingFriendStatement.setInt(1, userID1);
+            addPendingFriendStatement.setInt(2, userID2);
+            addPendingFriendStatement.setTimestamp(3, clockTime);
+            addPendingFriendStatement.setString(4, requestText);
+            addPendingFriendStatement.executeUpdate();
         }
 
     }
+    catch (SQLException e) {
+        // print error message
+        System.err.println("Error: " + e.getMessage());
+    }
+}
 
     // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
@@ -816,8 +929,60 @@ public class BeSocial {
     // message Not a Member
     // * of any Groups should be displayed to the user.
     public static void leaveGroup() {
-        // *wrote code for leaveGroup here
+        // TODO: Check what they mean by 'without changing lastConfirmed, bc I feel like that should happen'
+        // Prompt the user to enter the group they would like to leave
+        int groupToLeave = -1;
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM groupMember WHERE userID=" + userID + ";");
+            int groups = 0;
+            while (rs.next()) {
+                System.out.println(rs.getInt("gID"));
+                groups++;
+            }
 
+            if (!(groups > 0)) {
+                System.out.println("Not a member of any Groups.");
+                return;
+            }
+
+            System.out.print("Enter the group ID which you would like to leave: ");
+            groupToLeave = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
+        } catch (SQLException e) {
+            printErrors(e);
+        }
+
+        // Remove the member from the group
+        try {
+            // Set auto commit to false
+            conn.setAutoCommit(false);
+            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)");
+            pStatement.setInt(1, userID);
+            pStatement.setInt(2, groupToLeave);
+            pStatement.execute();
+            conn.commit();
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1) {
+                System.out.println("ERROR: " + e.getMessage());
+            }
+            System.out.println(e.getErrorCode());
+            printErrors(e);
+            try {
+                conn.rollback();
+            } catch (SQLException e2) {
+                System.out.println("An error occurred while rolling back the transaction");
+                endProgram();
+            }
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                // If another error occurs, just tank the program
+                System.out.println("Unexpected error occurred while setting auto commit back to false");
+                endProgram();
+            }
+        }
     }
 
     // TODO CASE 10
@@ -876,8 +1041,96 @@ public class BeSocial {
     // relation. The user
     // * should lastly be shown success or failure feedback.
     public static void sendMessageToUser() {
-        // * write code for sendMessageToUser here
+        // Prompt for friend to send message to
+        try {
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(
+                "SELECT * FROM friend WHERE (userID1=" + userID + ") OR (userID2=" + userID + ");"
+            );
+            if (!rs.next()) {
+                System.out.println("You have no friends.");
+                return;
+            }
+            
+            do {
+                int friendID = rs.getInt("userID1");
+                if (friendID == userID) {
+                    friendID = rs.getInt("userID2");
+                }
+                System.out.printf("User ID: %d\n", friendID);
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error getting the list of friends");
+            return;
+        }
 
+        // Get friend to send message to
+        System.out.print("Enter the userID of the friend you would like to message: ");
+        int fID = sc.nextInt();
+        sc.nextLine(); // Clear the buffer
+        
+        // Get name of the friend
+        String friendName = "";
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT name FROM profile WHERE userID=?;");
+            s.setInt(1, fID);
+            ResultSet rs = s.executeQuery();
+            if (!rs.next()) {
+                System.out.println("This friend does not exist");
+                return;
+            }       
+            friendName = rs.getString("name");
+        } catch (SQLException e) {
+            System.out.println("Error finding friend information");
+            printErrors(e);
+            return;
+        }
+
+        // Get the message to send
+        System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName + ", ending with 'END' on a new line:");
+        StringBuilder sb = new StringBuilder();
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            if (line.equals("END")) {
+                break;
+            }
+            sb.append(line).append("\n");
+        }
+
+        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
+
+        // Send the message
+        try {
+            conn.setAutoCommit(false);
+            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            CallableStatement c = conn.prepareCall("{ ? = call sendMessageToUser(?, ?, ?)}");
+            c.setInt(2, userID);
+            c.setInt(3, fID);
+            c.setString(4, message);
+            c.registerOutParameter(1, Types.BOOLEAN);
+            boolean res = c.execute();
+            if (res) {
+                System.out.println("Message successfully sent!");
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                System.out.println(ex.getMessage());
+                endProgram();
+            }
+            System.out.println("Error sending message");
+            printErrors(e);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+                conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            } catch (SQLException e) {
+                System.out.println("Error setting auto commit back to true");
+                printErrors(e);
+            }
+        }
     }
 
     // TODO CASE 12
@@ -938,7 +1191,7 @@ public class BeSocial {
             sb.append(line).append("\n");
         }
         
-        String message = sb.toString().substring(0, Math.min(sb.length(), 200));;
+        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
 
         // Call pgsql function that will send the msg to everyone in a given group
         // Java try-with-resources automatically closes the connection and callable statement
@@ -965,7 +1218,31 @@ public class BeSocial {
     // sent to the user (including group messages)
     // *should be displayed in a nicely formatted way.
     public static void displayMessages() {
-        // * write code for displayMessages here
+        // TODO: Clarify if we should also display who sent it
+        try {
+            // Execute query
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getMessages(?, ?);");
+            s.setInt(1, userID);
+            s.setBoolean(2, false);
+            ResultSet rs = s.executeQuery();
+
+            // Now format the results
+            if (!rs.next()) {
+                System.out.println("You have no messages");
+                return;
+            }
+
+            System.out.println();
+
+            int i = 1;
+            do {
+                // Print formatted message
+                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error retrieving messages.");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 14
@@ -975,7 +1252,30 @@ public class BeSocial {
     // displayed (including
     // * group messages).
     public static void displayNewMessages() {
-        // * write code for displayNewMessages here
+        try {
+            // Execute query
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getMessages(?, ?);");
+            s.setInt(1, userID);
+            s.setBoolean(2, true);
+            ResultSet rs = s.executeQuery();
+
+            // Now format the results
+            if (!rs.next()) {
+                System.out.println("You have no new messages");
+                return;
+            }
+
+            System.out.println();
+
+            int i = 1;
+            do {
+                // Print formatted message
+                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error retrieving messages.");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 15
@@ -992,6 +1292,64 @@ public class BeSocial {
     // * friend's profile or return to the main menu.
     public static void displayFriends() {
         // * write code for displayFriends here
+        // List all friends of the user
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriends(?);");
+            s.setInt(1, userID);
+            ResultSet rs = s.executeQuery();
+            if (!rs.next()) {
+                System.out.println("You have no friends.");
+                return;
+            }
+
+            do {
+                // Print out each profile
+                System.out.println(
+                    String.format("User ID: %d\tName: %s", 
+                        rs.getInt("friendID"), 
+                        rs.getString("name"))
+                );
+            } while (rs.next());
+        } catch (SQLException e) {
+            System.out.println("Error accessing user's friends");
+            printErrors(e);
+        }
+
+        System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+        int profileID = 0;
+        profileID = sc.nextInt();
+        sc.nextLine(); // Clear the buffer
+
+        while (profileID > 0) {
+            // Retrieve friend information and print it
+            try {
+                PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriendInfo(?, ?);");
+                s.setInt(1, userID);
+                s.setInt(2, profileID);
+                ResultSet rs = s.executeQuery();
+
+                // Exception would have been thrown if there was no friend 
+                rs.next();
+                String output = "User ID: %d\nName: %s\nEmail: %s\nLast login: %s\n";
+                System.out.printf(output, 
+                    rs.getInt("userID"), 
+                    rs.getString("name"), 
+                    rs.getString("email"),
+                    rs.getTimestamp("lastlogin")
+                );
+            } catch (SQLException e) {
+                if (e.getErrorCode() == 1) {
+                    System.out.println("This user is not a friend of the logged in account or does not exist.");
+                } else {
+                    printErrors(e);
+                }
+            }
+            
+            // Get give user option to enter input again
+            System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+            profileID = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
+        }
     }
 
     // TODO CASE 16
@@ -1050,7 +1408,36 @@ public class BeSocial {
     // considered in this
     // * function.
     public static void topMessages() {
-        // write code for topMessages here
+        System.out.print("Enter the number of months you want the search to go back: ");
+        int x = sc.nextInt();
+        sc.nextLine();
+        System.out.print("Enter the top k message senders you would like to see: ");
+        int k = sc.nextInt();
+        sc.nextLine();
+
+        try {
+            PreparedStatement p = conn.prepareStatement("SELECT * FROM topMessages(?, ?, ?);");
+            p.setInt(1, userID);
+            p.setInt(2, k);
+            p.setInt(3, x);
+            ResultSet rs = p.executeQuery();
+            int remaining = k;
+            while (remaining > 0 && rs.next()) {
+                System.out.println(String.format("User ID: %d\tYou had %d messages sent with each other.", 
+                    rs.getInt("recipient"), 
+                    rs.getLong("mCount"))
+                );
+                remaining--;
+                // TODO: Clarify what how ties should be handled
+            }
+
+            if (remaining == k) {
+                System.out.println("No users have sent messages to you.");
+            }
+        } catch (SQLException e) {
+            System.out.println("Error accessing message data");
+            printErrors(e);
+        }
     }
 
     // TODO CASE 19
