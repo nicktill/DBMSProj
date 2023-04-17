@@ -355,7 +355,7 @@ $$
 
         IF rec_pending IS NOT NULL THEN
             INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
-            -- Trigger handles this
+            -- Trigger handles the removal of the member
         END IF;
     END;
 $$ LANGUAGE plpgsql;
