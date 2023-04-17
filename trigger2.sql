@@ -514,20 +514,20 @@ $$
 
     BEGIN
         -- Check if they are friends with the person
-        IF (SELECT * FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
+        IF (SELECT userid1 FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
             IS NOT NULL THEN
-            RETURN (startID, -1, -1, endID);
+            RETURN QUERY SELECT startID, -1, -1, endID;
         end if;
 
-        FOR rec_user1 IN SELECT * FROM friend WHERE userid1=fromID OR userid2=fromID
+        FOR rec_user1 IN SELECT * FROM friend WHERE userid1=startID OR userid2=startID
         LOOP
             -- First hop
-            IF rec_user1.userid1=fromID THEN
+            IF rec_user1.userid1=startID THEN
                 secondUser := rec_user1.userid2;
             ELSE
                 secondUser := rec_user1.userid1;
             end if;
-            FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=fromID AND userid2!=fromID)
+            FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=startID AND userid2!=startID)
             LOOP
                 -- Second Hop
                 IF rec_user2.userid1=secondUser THEN
@@ -537,22 +537,24 @@ $$
                 end if;
 
                 -- Check if we have finished
-                IF thirdUser=toID THEN
-                    RETURN (startID, secondUser, -1, endID);
+                IF thirdUser=endID THEN
+                    RETURN QUERY SELECT startID, secondUser, -1, endID;
                 end if;
 
                 -- Now check if we can get from third user to the last
                 -- Checking if we can do the final hop
                 SELECT * INTO rec_user3
                 FROM friend
-                WHERE (userid1=thirdUser AND userid2=toID) OR (userid2=thirdUser AND userid1=toID);
+                WHERE (userid1=thirdUser AND userid2=endID) OR (userid2=thirdUser AND userid1=endID);
 
                 IF rec_user3 IS NOT NULL THEN
-                    RETURN (fromID, secondUser, thirdUser, toID);
+                    RETURN QUERY SELECT startID, secondUser, thirdUser, endID;
                 end if;
             end loop;
         end loop;
 
-        RAISE EXCEPTION 'There is no 3 degree relation' USING ERRCODE = '00001';
+--         RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
+        RETURN QUERY SELECT -1, -1, -1, -1;
+        -- TODO: Ask brian about returning error
     end;
 $$ LANGUAGE plpgsql;

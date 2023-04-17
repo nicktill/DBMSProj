@@ -14,10 +14,9 @@ import java.util.ArrayList;
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
     - TASK 10 - Do we need the entire user profile or just their userID?
-    - TASK 9 - Why not change the lastConfirmed?
+    - 
  */
 
-import java.sql.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -1447,7 +1446,41 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // *IMPORTANT NOTE* This query should be written using plpgsql and should only
     // use java for interfacing. *IMPORTANT NOTE*
     public static void threeDegrees() {
-        // write code for threeDegrees here
+        System.out.println("Enter the user ID of the user you want to find a relationship with:");
+        int toID = sc.nextInt();
+        sc.nextLine();
+        
+        // Now call the function
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM threeDegrees(?, ?);");
+            s.setInt(1, userID);
+            s.setInt(2, toID);
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            int firstHop = rs.getInt("secondID");
+            int secondHop = rs.getInt("thirdID");
+
+            // TODO: Possibly delete
+            if (rs.getInt("fromID") == -1) {
+                System.out.println("There is no three degree relation with this user.");
+                return;
+            }
+
+            if (firstHop == -1) {
+                System.out.printf("%d --> %d\n", userID, toID);
+            } else if (secondHop == -1) {
+                System.out.printf("%d --> %d --> %d\n", userID, firstHop, toID);
+            } else {
+                System.out.printf("%d --> %d --> %d --> %d\n", userID, firstHop, secondHop, toID);
+            }
+        } catch (SQLException e) {
+            // TODO: Come back to after meeting with Brian about this
+            if (e.getSQLState().equals("00001")) {
+                System.out.println("There is no three degree relation with this user.");
+            } else {
+                printErrors(e);
+            }
+        }
     }
 
     // TODO CASE 20
