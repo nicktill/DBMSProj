@@ -341,8 +341,7 @@ $$
 
         IF rec_pending IS NOT NULL THEN
             INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
-            DELETE FROM pendinggroupmember AS P
-                   WHERE P.userid=rec_pending.userid AND P.gid=rec_pending.gid;
+            -- Trigger handles this
         END IF;
     END;
 $$ LANGUAGE plpgsql;
@@ -484,7 +483,62 @@ $$
                     WHERE M.fromid=uID AND M.timesent BETWEEN startDate AND cur_time AND M.touserid IS NOT NULL
                     GROUP BY rec
                 ) CF
-            ORDER BY rank;
-        -- TODO: See if fetching can be done here
+            ORDER BY rank
+            FETCH FIRST topMessages.k ROWS ONLY;
+    end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION threeDegrees(startID INT, endID INT)
+RETURNS TABLE (fromID INT, secondID INT, thirdID INT, toID INT) AS
+$$
+    DECLARE
+        rec_user1 friend%ROWTYPE;
+        rec_user2 friend%ROWTYPE;
+        rec_user3 friend%ROWTYPE;
+        secondUser INT;
+        thirdUser INT;
+
+    BEGIN
+        -- Check if they are friends with the person
+        IF (SELECT * FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
+            IS NOT NULL THEN
+            RETURN (startID, -1, -1, endID);
+        end if;
+
+        FOR rec_user1 IN SELECT * FROM friend WHERE userid1=fromID OR userid2=fromID
+        LOOP
+            -- First hop
+            IF rec_user1.userid1=fromID THEN
+                secondUser := rec_user1.userid2;
+            ELSE
+                secondUser := rec_user1.userid1;
+            end if;
+            FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=fromID AND userid2!=fromID)
+            LOOP
+                -- Second Hop
+                IF rec_user2.userid1=secondUser THEN
+                    thirdUser := rec_user2.userid2;
+                ELSE
+                    thirdUser := rec_user2.userid1;
+                end if;
+
+                -- Check if we have finished
+                IF thirdUser=toID THEN
+                    RETURN (startID, secondUser, -1, endID);
+                end if;
+
+                -- Now check if we can get from third user to the last
+                -- Checking if we can do the final hop
+                SELECT * INTO rec_user3
+                FROM friend
+                WHERE (userid1=thirdUser AND userid2=toID) OR (userid2=thirdUser AND userid1=toID);
+
+                IF rec_user3 IS NOT NULL THEN
+                    RETURN (fromID, secondUser, thirdUser, toID);
+                end if;
+            end loop;
+        end loop;
+
+        RAISE EXCEPTION 'There is no 3 degree relation' USING ERRCODE = '00001';
     end;
 $$ LANGUAGE plpgsql;

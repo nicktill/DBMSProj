@@ -816,7 +816,6 @@ public class BeSocial {
     // message Not a Member
     // * of any Groups should be displayed to the user.
     public static void leaveGroup() {
-        // TODO: Check what they mean by 'without changing lastConfirmed, bc I feel like that should happen'
         // Prompt the user to enter the group they would like to leave
         int groupToLeave = -1;
         try {
@@ -844,7 +843,7 @@ public class BeSocial {
         try {
             // Set auto commit to false
             conn.setAutoCommit(false);
-            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)");
+            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)"); // Add all constraints deferred if needed
             pStatement.setInt(1, userID);
             pStatement.setInt(2, groupToLeave);
             pStatement.execute();
@@ -1124,6 +1123,7 @@ public class BeSocial {
             do {
                 // Print formatted message
                 System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+                // TODO: Have it display: msgID, who sent, body, and the time sent
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1177,7 +1177,6 @@ public class BeSocial {
     // retrieve another
     // * friend's profile or return to the main menu.
     public static void displayFriends() {
-        // * write code for displayFriends here
         // List all friends of the user
         try {
             PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriends(?);");
@@ -1315,6 +1314,7 @@ public class BeSocial {
                 );
                 remaining--;
                 // TODO: Clarify what how ties should be handled
+                // ! CAN BE BOTH
             }
 
             if (remaining == k) {
