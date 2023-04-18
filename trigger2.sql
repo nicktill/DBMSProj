@@ -494,7 +494,7 @@ $$
         thirdUser INT;
 
     BEGIN
-        -- Check if they are friends with the person
+        -- Check if they are directly friends with the person (1 hop solution)
         IF (SELECT userid1 FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
             IS NOT NULL THEN
             RETURN QUERY SELECT startID, -1, -1, endID;
@@ -509,7 +509,7 @@ $$
                 secondUser := rec_user1.userid1;
             end if;
 
-            -- Check that we can get from first hop location to end user
+            -- Check that we can get from first hop location to end user (2 hop solution)
             SELECT * INTO rec_user2
             FROM friend
             WHERE (userid1=secondUser AND userid2=endID) OR (userid2=secondUser AND userid1=endID);
@@ -518,6 +518,7 @@ $$
                 RETURN QUERY SELECT startID, secondUser, -1, endID;
             end if;
 
+            -- Now go through the friend's friends
             FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=startID AND userid2!=startID)
             LOOP
                 -- Second Hop
@@ -527,8 +528,7 @@ $$
                     thirdUser := rec_user2.userid1;
                 end if;
 
-                -- Now check if we can get from third user to the last
-                -- Checking if we can do the final hop
+                -- Now check if we can get from the second hop user to the end profile (3 hop solution
                 SELECT * INTO rec_user3
                 FROM friend
                 WHERE (userid1=thirdUser AND userid2=endID) OR (userid2=thirdUser AND userid1=endID);
@@ -539,6 +539,7 @@ $$
             end loop;
         end loop;
 
+        -- No solution within 3 hops
         -- RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
         RETURN QUERY SELECT -1, -1, -1, -1;
         -- TODO: Ask brian about returning error
@@ -564,73 +565,55 @@ $$
         ON COMMIT DROP;
 
         -- TODO: Check if we should omit profile 0
+        -- Get network count for each user
         FOR rec_profile IN SELECT * FROM profile
         LOOP
+            -- Delete/Re-declare the table
             DROP TABLE IF EXISTS friendships CASCADE;
             CREATE TEMPORARY TABLE friendships (
                 id INT PRIMARY KEY
             )
             ON COMMIT DROP;
-            rankCount := 0;
 
-            -- Get total number of friends that user has
+            -- Get total number of friends that user has and add those id's to the table
             INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_profile.userid);
-            -- SELECT coalesce(COUNT(*), 0) INTO rankCount FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid;
 
-            -- Add the number of friends each of their friends have
+            -- Go through all of the user's friends
             FOR rec_Friendship IN SELECT * FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid
             LOOP
-                -- Add unique new friends to this set
+                -- Add unique new friends/profile ids to the temporary table
                 INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_Friendship.userid2 AND userid2 NOT IN (SELECT * FROM friendships));
 
-                -- SELECT coalesce(COUNT(*), 0) INTO friendsCount FROM getOneWayFriends() G WHERE G.userid1=rec_Friendship.userid2;
-                -- rankCount := rankCount + friendsCount;
-
-                -- Now for this friend, also add all friendships via group membership
+                -- Now go through all of their friend's groups
                 FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_Friendship.userid2
                 LOOP
-                    -- Insert unique group friends for this member
+                    -- Insert any unseen friends/group friends for this member to the temporary table
                     INSERT INTO friendships
                         (SELECT G.userid
                          FROM groupmember G
                          WHERE G.gid=rec_groupMember.gid
                            AND G.userid!=rec_Friendship.userid2
                            AND G.userid NOT IN (SELECT * FROM friendships));
-
-                    -- Make sure to not double count the user's friends
-                    -- SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
-                    -- FROM groupmember G
-                    -- WHERE G.gid=rec_groupmember.gid
-                    --  AND G.userid!=rec_Friendship.userid2
-                    --  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_Friendship.userid2);
-                    -- rankCount := rankCount + friendsCount;
                 end loop;
             end loop;
 
-            -- Now for each group the user is in, add their total number of group members who are not them or their friend
+            -- Go through all of the groups the original user is in
             FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_profile.userid
             LOOP
-                -- Insert unique group friend from groups this
+                -- Insert unique group friends to the temporary table tracking the network
                 INSERT INTO friendships
                     (SELECT G.userid
                      FROM groupmember G
                      WHERE G.gid=rec_groupMember.gid
                         AND G.userid!=rec_profile.userid
                         AND G.userid NOT IN (SELECT * FROM friendships));
-
-                -- Make sure to not double count the user's friends
-                -- SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
-                -- FROM groupmember G
-                -- WHERE G.gid=rec_groupmember.gid
-                --  AND G.userid!=rec_profile.userid
-                --  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_profile.userid);
-                -- rankCount := rankCount + friendsCount;
             end loop;
 
-            INSERT INTO profileRanks VALUES (rec_profile.userid, (SELECT COUNT(*) FROM friendships));
-            -- INSERT INTO profileRanks VALUES (rec_profile.userid, rankCount);
+            -- Now insert the count of the temporary table to the profile ranks temporary table
+            INSERT INTO profileRanks VALUES (rec_profile.userid, (SELECT coalesce(COUNT(*), 0) FROM friendships));
         end loop;
 
+        -- Return the sorted table query
         RETURN QUERY
             SELECT PR.uID, PR.numFriends, RANK() OVER (ORDER BY PR.numFriends DESC) AS rank
             FROM profileRanks PR
