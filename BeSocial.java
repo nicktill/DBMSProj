@@ -14,10 +14,9 @@ import java.util.ArrayList;
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
     - TASK 10 - Do we need the entire user profile or just their userID?
-    - TASK 9 - Why not change the lastConfirmed?
+    - 
  */
 
-import java.sql.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -30,7 +29,6 @@ public class BeSocial {
     private static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
-    private static String userName = null;
 
     public static void main(String[] args) {
         sc = new Scanner(System.in);
@@ -301,7 +299,6 @@ public class BeSocial {
                 System.out.println("Could not log in user, please try again.");
             } else {
                 userID = rs.getInt("userID");
-                userName = rs.getString("name");
                 System.out.printf("Successfully logged in as %s\n", username);
                 isLoggedIn = true;
             }
@@ -930,7 +927,6 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // message Not a Member
     // * of any Groups should be displayed to the user.
     public static void leaveGroup() {
-        // TODO: Check what they mean by 'without changing lastConfirmed, bc I feel like that should happen'
         // Prompt the user to enter the group they would like to leave
         int groupToLeave = -1;
         try {
@@ -958,7 +954,7 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
         try {
             // Set auto commit to false
             conn.setAutoCommit(false);
-            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)");
+            PreparedStatement pStatement = conn.prepareStatement("call leaveGroup(?, ?)"); // Add all constraints deferred if needed
             pStatement.setInt(1, userID);
             pStatement.setInt(2, groupToLeave);
             pStatement.execute();
@@ -1239,6 +1235,7 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
             do {
                 // Print formatted message
                 System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+                // TODO: Have it display: msgID, who sent, body, and the time sent
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1292,7 +1289,6 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // retrieve another
     // * friend's profile or return to the main menu.
     public static void displayFriends() {
-        // * write code for displayFriends here
         // List all friends of the user
         try {
             PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriends(?);");
@@ -1393,7 +1389,18 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // the groups the user
     // * profile belongs to.
     public static void rankProfiles() {
-        // write code for rankProfiles here
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM rankProfiles();");
+            ResultSet rs = s.executeQuery();
+            while(rs.next()) {
+                long rank = rs.getLong("rank");
+                int id = rs.getInt("uID");
+                long numFriends = rs.getLong("numFriends");
+                System.out.printf("%d.\tUser ID: %d\tNumber of friends/friends' friends: %d\n", rank, id, numFriends);
+            }
+        } catch (SQLException e) {
+            printErrors(e);
+        }
     }
 
     // TODO CASE 18
@@ -1428,6 +1435,7 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
                 );
                 remaining--;
                 // TODO: Clarify what how ties should be handled
+                // ! CAN BE BOTH
             }
 
             if (remaining == k) {
@@ -1447,7 +1455,41 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // *IMPORTANT NOTE* This query should be written using plpgsql and should only
     // use java for interfacing. *IMPORTANT NOTE*
     public static void threeDegrees() {
-        // write code for threeDegrees here
+        System.out.println("Enter the user ID of the user you want to find a relationship with:");
+        int toID = sc.nextInt();
+        sc.nextLine();
+        
+        // Now call the function
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM threeDegrees(?, ?);");
+            s.setInt(1, userID);
+            s.setInt(2, toID);
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            int firstHop = rs.getInt("secondID");
+            int secondHop = rs.getInt("thirdID");
+
+            // TODO: Possibly delete
+            if (rs.getInt("fromID") == -1) {
+                System.out.println("There is no three degree relation with this user.");
+                return;
+            }
+
+            if (firstHop == -1) {
+                System.out.printf("%d --> %d\n", userID, toID);
+            } else if (secondHop == -1) {
+                System.out.printf("%d --> %d --> %d\n", userID, firstHop, toID);
+            } else {
+                System.out.printf("%d --> %d --> %d --> %d\n", userID, firstHop, secondHop, toID);
+            }
+        } catch (SQLException e) {
+            // TODO: Come back to after meeting with Brian about this
+            if (e.getSQLState().equals("00001")) {
+                System.out.println("There is no three degree relation with this user.");
+            } else {
+                printErrors(e);
+            }
+        }
     }
 
     // TODO CASE 20

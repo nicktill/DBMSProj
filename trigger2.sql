@@ -355,8 +355,7 @@ $$
 
         IF rec_pending IS NOT NULL THEN
             INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
-            DELETE FROM pendinggroupmember AS P
-                   WHERE P.userid=rec_pending.userid AND P.gid=rec_pending.gid;
+            -- Trigger handles the removal of the member
         END IF;
     END;
 $$ LANGUAGE plpgsql;
@@ -498,7 +497,130 @@ $$
                     WHERE M.fromid=uID AND M.timesent BETWEEN startDate AND cur_time AND M.touserid IS NOT NULL
                     GROUP BY rec
                 ) CF
+            ORDER BY rank
+            FETCH FIRST topMessages.k ROWS ONLY;
+    end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION threeDegrees(startID INT, endID INT)
+RETURNS TABLE (fromID INT, secondID INT, thirdID INT, toID INT) AS
+$$
+    DECLARE
+        rec_user1 friend%ROWTYPE;
+        rec_user2 friend%ROWTYPE;
+        rec_user3 friend%ROWTYPE;
+        secondUser INT;
+        thirdUser INT;
+
+    BEGIN
+        -- Check if they are friends with the person
+        IF (SELECT userid1 FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
+            IS NOT NULL THEN
+            RETURN QUERY SELECT startID, -1, -1, endID;
+        end if;
+
+        FOR rec_user1 IN SELECT * FROM friend WHERE userid1=startID OR userid2=startID
+        LOOP
+            -- First hop
+            IF rec_user1.userid1=startID THEN
+                secondUser := rec_user1.userid2;
+            ELSE
+                secondUser := rec_user1.userid1;
+            end if;
+            FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=startID AND userid2!=startID)
+            LOOP
+                -- Second Hop
+                IF rec_user2.userid1=secondUser THEN
+                    thirdUser := rec_user2.userid2;
+                ELSE
+                    thirdUser := rec_user2.userid1;
+                end if;
+
+                -- Check if we have finished
+                IF thirdUser=endID THEN
+                    RETURN QUERY SELECT startID, secondUser, -1, endID;
+                end if;
+
+                -- Now check if we can get from third user to the last
+                -- Checking if we can do the final hop
+                SELECT * INTO rec_user3
+                FROM friend
+                WHERE (userid1=thirdUser AND userid2=endID) OR (userid2=thirdUser AND userid1=endID);
+
+                IF rec_user3 IS NOT NULL THEN
+                    RETURN QUERY SELECT startID, secondUser, thirdUser, endID;
+                end if;
+            end loop;
+        end loop;
+
+        -- RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
+        RETURN QUERY SELECT -1, -1, -1, -1;
+        -- TODO: Ask brian about returning error
+    end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION rankProfiles()
+RETURNS TABLE (uID INT, numFriends BIGINT, rank BIGINT) AS
+$$
+    DECLARE
+        rec_profile profile%ROWTYPE;
+        rec_groupMember groupmember%ROWTYPE;
+        rec_Friendship RECORD;
+        rankCount INT;
+        friendsCount INT;
+
+    BEGIN
+        -- Create temporary table to store results
+        CREATE TEMPORARY TABLE profileRanks (
+            uID INT PRIMARY KEY,
+            numFriends BIGINT
+        )
+        ON COMMIT DROP;
+
+        -- TODO: Check if we should omit profile 0
+        FOR rec_profile IN SELECT * FROM profile
+        LOOP
+            rankCount := 0;
+
+            -- Get total number of friends that user has
+            SELECT coalesce(COUNT(*), 0) INTO rankCount FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid;
+
+            -- Add the number of friends each of their friends have
+            FOR rec_Friendship IN SELECT * FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid
+            LOOP
+                SELECT coalesce(COUNT(*), 0) INTO friendsCount FROM getOneWayFriends() G WHERE G.userid1=rec_Friendship.userid2;
+                rankCount := rankCount + friendsCount;
+            end loop;
+
+            -- Now for each group the user is in, add their total number of group members who are not them or their friend
+            FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_profile.userid
+            LOOP
+                -- Make sure to not double count the user's friends
+                SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
+                FROM groupmember G
+                WHERE G.gid=rec_groupmember.gid
+                  AND G.userid!=rec_profile.userid
+                  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_profile.userid);
+                rankCount := rankCount + friendsCount;
+            end loop;
+
+            INSERT INTO profileRanks VALUES (rec_profile.userid, rankCount);
+        end loop;
+
+        RETURN QUERY
+            SELECT PR.uID, PR.numFriends, RANK() OVER (ORDER BY PR.numFriends DESC) AS rank
+            FROM profileRanks PR
             ORDER BY rank;
-        -- TODO: See if fetching can be done here
+    end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION getOneWayFriends()
+RETURNS TABLE (userid1 INT, userid2 INT) AS
+$$
+    BEGIN
+        -- This is as it sounds
+        RETURN QUERY SELECT f1.userid2 AS userid1, f1.userid1 AS userid2 FROM friend f1
+                     UNION
+                     SELECT f2.userid1, f2.userid2 FROM friend f2;
     end;
 $$ LANGUAGE plpgsql;
