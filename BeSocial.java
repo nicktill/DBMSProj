@@ -29,7 +29,6 @@ public class BeSocial {
     private static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
-    private static String userName = null;
 
     public static void main(String[] args) {
         sc = new Scanner(System.in);
@@ -300,7 +299,6 @@ public class BeSocial {
                 System.out.println("Could not log in user, please try again.");
             } else {
                 userID = rs.getInt("userID");
-                userName = rs.getString("name");
                 System.out.printf("Successfully logged in as %s\n", username);
                 isLoggedIn = true;
             }
@@ -1391,7 +1389,18 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
     // the groups the user
     // * profile belongs to.
     public static void rankProfiles() {
-        // write code for rankProfiles here
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM rankProfiles();");
+            ResultSet rs = s.executeQuery();
+            while(rs.next()) {
+                long rank = rs.getLong("rank");
+                int id = rs.getInt("uID");
+                long numFriends = rs.getLong("numFriends");
+                System.out.printf("%d.\tUser ID: %d\tNumber of friends/friends' friends: %d\n", rank, id, numFriends);
+            }
+        } catch (SQLException e) {
+            printErrors(e);
+        }
     }
 
     // TODO CASE 18
