@@ -590,6 +590,18 @@ $$
             LOOP
                 SELECT coalesce(COUNT(*), 0) INTO friendsCount FROM getOneWayFriends() G WHERE G.userid1=rec_Friendship.userid2;
                 rankCount := rankCount + friendsCount;
+
+                -- Now for this friend, also add all friendships via group membership
+                FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_Friendship.userid2
+                LOOP
+                    -- Make sure to not double count the user's friends
+                    SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
+                    FROM groupmember G
+                    WHERE G.gid=rec_groupmember.gid
+                      AND G.userid!=rec_Friendship.userid2
+                      AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_Friendship.userid2);
+                    rankCount := rankCount + friendsCount;
+                end loop;
             end loop;
 
             -- Now for each group the user is in, add their total number of group members who are not them or their friend
