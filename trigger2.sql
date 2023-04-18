@@ -449,26 +449,7 @@ $$
     end;
 $$ LANGUAGE plpgsql;
 
--- CREATE OR REPLACE FUNCTION rankProfiles()
--- RETURNS TABLE (rank INT, numFriends INT, id INT, name VARCHAR(50)) AS
--- $$
---     DECLARE
---
---     BEGIN
---         -- Get number of friends for every users
---         -- This is done by summing the two counts of both sides of the friend relationship
---         SELECT COUNT(userid2)
---         FROM friend
---         GROUP BY userid1;
---
---         SELECT COUNT(userid1)
---         FROM friend
---         GROUP BY userid2;
---
---         -- Combine to get table of
---     end;
--- $$ LANGUAGE plpgsql;
-
+-- Gets top k messages
 CREATE OR REPLACE FUNCTION topMessages(uID INT, k INT, x INT)
 RETURNS TABLE (recipient INT, mCount BIGINT, rank BIGINT) AS
 $$
@@ -527,6 +508,16 @@ $$
             ELSE
                 secondUser := rec_user1.userid1;
             end if;
+
+            -- Check that we can get from first hop location to end user
+            SELECT * INTO rec_user2
+            FROM friend
+            WHERE (userid1=secondUser AND userid2=endID) OR (userid2=secondUser AND userid1=endID);
+
+            IF rec_user2 IS NOT NULL THEN
+                RETURN QUERY SELECT startID, secondUser, -1, endID;
+            end if;
+
             FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=startID AND userid2!=startID)
             LOOP
                 -- Second Hop
@@ -534,11 +525,6 @@ $$
                     thirdUser := rec_user2.userid2;
                 ELSE
                     thirdUser := rec_user2.userid1;
-                end if;
-
-                -- Check if we have finished
-                IF thirdUser=endID THEN
-                    RETURN QUERY SELECT startID, secondUser, -1, endID;
                 end if;
 
                 -- Now check if we can get from third user to the last
@@ -580,43 +566,69 @@ $$
         -- TODO: Check if we should omit profile 0
         FOR rec_profile IN SELECT * FROM profile
         LOOP
+            DROP TABLE IF EXISTS friendships CASCADE;
+            CREATE TEMPORARY TABLE friendships (
+                id INT PRIMARY KEY
+            )
+            ON COMMIT DROP;
             rankCount := 0;
 
             -- Get total number of friends that user has
-            SELECT coalesce(COUNT(*), 0) INTO rankCount FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid;
+            INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_profile.userid);
+            -- SELECT coalesce(COUNT(*), 0) INTO rankCount FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid;
 
             -- Add the number of friends each of their friends have
             FOR rec_Friendship IN SELECT * FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid
             LOOP
-                SELECT coalesce(COUNT(*), 0) INTO friendsCount FROM getOneWayFriends() G WHERE G.userid1=rec_Friendship.userid2;
-                rankCount := rankCount + friendsCount;
+                -- Add unique new friends to this set
+                INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_Friendship.userid2 AND userid2 NOT IN (SELECT * FROM friendships));
+
+                -- SELECT coalesce(COUNT(*), 0) INTO friendsCount FROM getOneWayFriends() G WHERE G.userid1=rec_Friendship.userid2;
+                -- rankCount := rankCount + friendsCount;
 
                 -- Now for this friend, also add all friendships via group membership
                 FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_Friendship.userid2
                 LOOP
+                    -- Insert unique group friends for this member
+                    INSERT INTO friendships
+                        (SELECT G.userid
+                         FROM groupmember G
+                         WHERE G.gid=rec_groupMember.gid
+                           AND G.userid!=rec_Friendship.userid2
+                           AND G.userid NOT IN (SELECT * FROM friendships));
+
                     -- Make sure to not double count the user's friends
-                    SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
-                    FROM groupmember G
-                    WHERE G.gid=rec_groupmember.gid
-                      AND G.userid!=rec_Friendship.userid2
-                      AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_Friendship.userid2);
-                    rankCount := rankCount + friendsCount;
+                    -- SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
+                    -- FROM groupmember G
+                    -- WHERE G.gid=rec_groupmember.gid
+                    --  AND G.userid!=rec_Friendship.userid2
+                    --  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_Friendship.userid2);
+                    -- rankCount := rankCount + friendsCount;
                 end loop;
             end loop;
 
             -- Now for each group the user is in, add their total number of group members who are not them or their friend
             FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_profile.userid
             LOOP
+                -- Insert unique group friend from groups this
+                INSERT INTO friendships
+                    (SELECT G.userid
+                     FROM groupmember G
+                     WHERE G.gid=rec_groupMember.gid
+                        AND G.userid!=rec_profile.userid
+                        AND G.userid NOT IN (SELECT * FROM friendships));
+
                 -- Make sure to not double count the user's friends
-                SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
-                FROM groupmember G
-                WHERE G.gid=rec_groupmember.gid
-                  AND G.userid!=rec_profile.userid
-                  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_profile.userid);
-                rankCount := rankCount + friendsCount;
+                -- SELECT coalesce(COUNT(G.userid), 0) INTO friendsCount
+                -- FROM groupmember G
+                -- WHERE G.gid=rec_groupmember.gid
+                --  AND G.userid!=rec_profile.userid
+                --  AND G.userid NOT IN (SELECT F.userid2 FROM getOneWayFriends() F WHERE F.userid1=rec_profile.userid);
+                -- rankCount := rankCount + friendsCount;
             end loop;
 
-            INSERT INTO profileRanks VALUES (rec_profile.userid, rankCount);
+            INSERT INTO profileRanks VALUES (rec_profile.userid, (SELECT COUNT(*) FROM friendships));
+            -- INSERT INTO profileRanks VALUES (rec_profile.userid, rankCount);
         end loop;
 
         RETURN QUERY

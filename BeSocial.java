@@ -1398,7 +1398,7 @@ public class BeSocial {
                 long rank = rs.getLong("rank");
                 int id = rs.getInt("uID");
                 long numFriends = rs.getLong("numFriends");
-                System.out.printf("%d.\tUser ID: %d\tNumber of friends/friends' friends: %d\n", rank, id, numFriends);
+                System.out.printf("%d.\tUser ID: %d\tNetwork Size: %d\n", rank, id, numFriends);
             }
         } catch (SQLException e) {
             printErrors(e);
