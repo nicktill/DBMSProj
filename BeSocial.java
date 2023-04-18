@@ -960,11 +960,12 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
             pStatement.execute();
             conn.commit();
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1) {
+            if (e.getSQLState().equals("00001")) {
                 System.out.println("ERROR: " + e.getMessage());
+            } else {
+                printErrors(e);
             }
-            System.out.println(e.getErrorCode());
-            printErrors(e);
+            
             try {
                 conn.rollback();
             } catch (SQLException e2) {
@@ -1335,7 +1336,7 @@ public static void acceptFriendRequest(int userID1, int userID2) throws SQLExcep
                     rs.getTimestamp("lastlogin")
                 );
             } catch (SQLException e) {
-                if (e.getErrorCode() == 1) {
+                if (e.getSQLState().equals("00001")) {
                     System.out.println("This user is not a friend of the logged in account or does not exist.");
                 } else {
                     printErrors(e);
