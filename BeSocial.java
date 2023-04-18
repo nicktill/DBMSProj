@@ -466,137 +466,138 @@ public class BeSocial {
     // * In the event that the user has no pending friend requests, a message No
     // Pending Friend
     // * Requests should be displayed to the user.
- //add to jonah branch and test
-public static void confirmFriendRequests(int userID) {
-    try {
-        String query = "SELECT * FROM listPendingFriends(?);";
-        PreparedStatement listFriendsStatement = conn.prepareStatement(query);
-        listFriendsStatement.setInt(1, userID);
-        // Execute the query and process the results
-        ResultSet rs = listFriendsStatement.executeQuery();
-        List<Integer> fromIDs = new ArrayList<>();
-        int i = 1;
-        while (rs.next()) {
-            String requestText = rs.getString("requestText");
-            int fromID = rs.getInt("fromID");
-            System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
-            fromIDs.add(fromID); //add current fromID to list for use later
-            i++;
-        }
+    //add to jonah branch and test
+    public static void confirmFriendRequests(int userID) {
+        try {
+            String query = "SELECT * FROM listPendingFriends(?);";
+            PreparedStatement listFriendsStatement = conn.prepareStatement(query);
+            listFriendsStatement.setInt(1, userID);
+            // Execute the query and process the results
+            ResultSet rs = listFriendsStatement.executeQuery();
+            List<Integer> fromIDs = new ArrayList<>();
+            int i = 1;
+            while (rs.next()) {
+                String requestText = rs.getString("requestText");
+                int fromID = rs.getInt("fromID");
+                System.out.println(i + ". FromID: " + fromID + ", RequestText: " + requestText);
+                fromIDs.add(fromID); //add current fromID to list for use later
+                i++;
+            }
 
-        //if no pending friend requests exist
-        if (fromIDs.isEmpty()) {
-            System.out.println("No Pending Friend Requests");
-            return;
-        }
-        //otherwise continue with accepting friend requests
-        //prompt user to accept all requests or one at a time
-        System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
-                "1. Accept all requests\n" +
-                "2. Specify one request at a time\n");
-        int choice = sc.nextInt();
-        sc.nextLine();
-        //validate input
-        while (choice != 1 && choice != 2) {
-            System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+            //if no pending friend requests exist
+            if (fromIDs.isEmpty()) {
+                System.out.println("No Pending Friend Requests");
+                return;
+            }
+            //otherwise continue with accepting friend requests
+            //prompt user to accept all requests or one at a time
+            System.out.print("Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
                     "1. Accept all requests\n" +
                     "2. Specify one request at a time\n");
-            choice = sc.nextInt();
+            int choice = sc.nextInt();
             sc.nextLine();
-        }
-
-        //accept all requests
-        if (choice == 1) {
-            // accept all requests
-            for (int fromID : fromIDs) {
-                acceptFriendRequest(userID, fromID);
+            //validate input
+            while (choice != 1 && choice != 2) {
+                System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+                        "1. Accept all requests\n" +
+                        "2. Specify one request at a time\n");
+                choice = sc.nextInt();
+                sc.nextLine();
             }
-            System.out.println("Accepted all requests");
-        } else if (choice == 2) {
-            // accept one request at a time
-            System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
-            int fromID = sc.nextInt();
-            sc.nextLine();
-            while (fromID != -1) {
-                //validate input
-                while (!fromIDs.contains(fromID)) {
-                    System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+
+            //accept all requests
+            if (choice == 1) {
+                // accept all requests
+                for (int fromID : fromIDs) {
+                    acceptFriendRequest(userID, fromID);
+                }
+                System.out.println("Accepted all requests");
+            } else if (choice == 2) {
+                // accept one request at a time
+                System.out.println("Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                int fromID = sc.nextInt();
+                sc.nextLine();
+                while (fromID != -1) {
+                    //validate input
+                    while (!fromIDs.contains(fromID)) {
+                        System.out.println("Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+                        fromID = sc.nextInt();
+                        sc.nextLine();
+                    }
+                    //accept request
+                    acceptFriendRequest(userID, fromID);
+                    System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
                     fromID = sc.nextInt();
                     sc.nextLine();
                 }
-                //accept request
-                acceptFriendRequest(userID, fromID);
-                System.out.println("Accepted request from " + fromID + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
-                fromID = sc.nextInt();
-                sc.nextLine();
-            }
-    
-        }
-        // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
-        String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
-        PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
-        removeDeclinedReqsStatement.setInt(1, userID);
-        removeDeclinedReqsStatement.executeUpdate();
-        removeDeclinedReqsStatement.close();
-        System.out.print("All other requeste deleted, leaving menu...\n");
-        return;
-
         
-    } catch (SQLException e) {
-        System.err.println("Error: " + e.getMessage());
-        e.printStackTrace();
-    }
-}
-// * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
-public static void acceptFriendRequest(int userID1, int userID2) throws SQLException {
-    try {
-        // GRAB CLOCK TIME
-        String clockQuery = "SELECT pseudo_time FROM clock;";
-        PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
-        ResultSet clockInfo = clockQueryStatement.executeQuery();
-        if(!clockInfo.next()) {
-            System.out.println("Error: No clock time found");
+            }
+            // remove all the requests that were not accepted (specified per pdf) to the UserID we are currently on
+            String removeDeclinedReqs = "DELETE FROM pendingFriend WHERE toID = ?;";
+            PreparedStatement removeDeclinedReqsStatement = conn.prepareStatement(removeDeclinedReqs);
+            removeDeclinedReqsStatement.setInt(1, userID);
+            removeDeclinedReqsStatement.executeUpdate();
+            removeDeclinedReqsStatement.close();
+            System.out.print("All other requeste deleted, leaving menu...\n");
             return;
-        }
-        Timestamp clockTime = clockInfo.getTimestamp("pseudo_time");
 
-        // GRAB REQUEST TEXT
-        String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
-        PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
-        reqTextStatement.setInt(1, userID1);
-        reqTextStatement.setInt(2, userID2);
-        ResultSet reqTextInfo = reqTextStatement.executeQuery();
-        String requestText = null;
-        if (reqTextInfo.next()) {
-            requestText = reqTextInfo.getString("requestText");
+            
+        } catch (SQLException e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
         }
-       
-        if (requestText == null) {
-                // ADD Friend with no request text
-                String addPendingFriendWithNoReqText = "INSERT INTO friend (userID1, userID2, JDate) VALUES(?, ?, ?);";
-                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+    }
+
+    // * HEPER METHOD FOR CONFIRM FRIEND REQUESTS
+    public static void acceptFriendRequest(int userID1, int userID2) throws SQLException {
+        try {
+            // GRAB CLOCK TIME
+            String clockQuery = "SELECT pseudo_time FROM clock;";
+            PreparedStatement clockQueryStatement = conn.prepareStatement(clockQuery);
+            ResultSet clockInfo = clockQueryStatement.executeQuery();
+            if(!clockInfo.next()) {
+                System.out.println("Error: No clock time found");
+                return;
+            }
+            Timestamp clockTime = clockInfo.getTimestamp("pseudo_time");
+
+            // GRAB REQUEST TEXT
+            String reqText = "SELECT requestText FROM pendingFriend WHERE fromID = ? AND toID = ?;";
+            PreparedStatement reqTextStatement = conn.prepareStatement(reqText);
+            reqTextStatement.setInt(1, userID1);
+            reqTextStatement.setInt(2, userID2);
+            ResultSet reqTextInfo = reqTextStatement.executeQuery();
+            String requestText = null;
+            if (reqTextInfo.next()) {
+                requestText = reqTextInfo.getString("requestText");
+            }
+        
+            if (requestText == null) {
+                    // ADD Friend with no request text
+                    String addPendingFriendWithNoReqText = "INSERT INTO friend (userID1, userID2, JDate) VALUES(?, ?, ?);";
+                    PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithNoReqText);
+                    addPendingFriendStatement.setInt(1, userID1);
+                    addPendingFriendStatement.setInt(2, userID2);
+                    addPendingFriendStatement.setTimestamp(3, clockTime);
+                    addPendingFriendStatement.executeUpdate();
+            }
+            else{
+                // ADD Friend with custom request text
+                String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
+                PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
                 addPendingFriendStatement.setInt(1, userID1);
                 addPendingFriendStatement.setInt(2, userID2);
                 addPendingFriendStatement.setTimestamp(3, clockTime);
+                addPendingFriendStatement.setString(4, requestText);
                 addPendingFriendStatement.executeUpdate();
-        }
-        else{
-            // ADD Friend with custom request text
-            String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
-            PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
-            addPendingFriendStatement.setInt(1, userID1);
-            addPendingFriendStatement.setInt(2, userID2);
-            addPendingFriendStatement.setTimestamp(3, clockTime);
-            addPendingFriendStatement.setString(4, requestText);
-            addPendingFriendStatement.executeUpdate();
-        }
+            }
 
+        }
+        catch (SQLException e) {
+            // print error message
+            System.err.println("Error: " + e.getMessage());
+        }
     }
-    catch (SQLException e) {
-        // print error message
-        System.err.println("Error: " + e.getMessage());
-    }
-}
 
     // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
