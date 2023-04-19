@@ -84,7 +84,13 @@ public class BeSocial {
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
-                userInput = Integer.parseInt(sc.nextLine());
+                try{
+                    userInput = Integer.parseInt(sc.nextLine());
+                }
+                catch(Exception e){
+                    System.out.println("Invalid input. Please enter a number.");
+                    continue;
+                }
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
                 // loop
@@ -413,7 +419,20 @@ public class BeSocial {
     // * relation, and success or failure feedback is displayed for the user.
     public void initiateFriendship() {
         System.out.print("Enter the userID of the friend you want to request: ");
-        int toID = sc.nextInt();
+        int toID = 0;
+        boolean validInput = false;
+        
+        do {
+            if (sc.hasNextInt()) {
+                toID = sc.nextInt();
+                validInput = true;
+            } else {
+                System.out.println("Invalid input please enter a number" + 
+                "\nEnter the userID of the friend you want to request: ");
+                sc.nextLine();
+            }
+        } while (!validInput);
+        
         sc.nextLine(); // Clear buffer
 
         // Get the user entry and confirm the operation with the user
