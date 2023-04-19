@@ -44,7 +44,8 @@ public class BeSocial {
         } catch (Exception e) {
             System.out.println(String.format(
                     "Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
-            sc.close();
+            
+            if (sc != null) sc.close();
             System.exit(0);
         }
     }
@@ -64,7 +65,7 @@ public class BeSocial {
             databasePassword = sc.nextLine();
         } catch (Exception e) {
             System.out.println("Error retrieving username and password");
-            sc.close();
+            if (sc != null) sc.close();
             System.exit(0);
         }
 
@@ -238,8 +239,7 @@ public class BeSocial {
         } catch (SQLException e) {
             System.out.println("Error closing DB connection");
         }
-        sc.close();
-        System.exit(0);
+        if (sc != null) sc.close();
     }
 
     // TODO CASE 1

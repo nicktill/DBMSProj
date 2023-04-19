@@ -183,7 +183,7 @@ public class Driver {
         sc.nextLine();
         testExit();
 
-        System.out.println("All tests completed");
+        System.out.println("\nAll tests completed");
 
         sc.close();
         try {
@@ -193,8 +193,18 @@ public class Driver {
         }
     }
 
+    /** Test Exit Method
+     * After calling the exit method, beSocial should close the scanner and connection to the database
+     */
     private static void testExit() {
-        System.out.println("Test Exit Not Implemented");
+        // Call the exit function
+        beSocial.exit();
+
+        if (beSocial == null) {
+            System.out.println("Test Exit Passed");
+        } else {
+            System.out.println("Test Exit Failed");
+        }
     }
 
     private static void testLogout() {
