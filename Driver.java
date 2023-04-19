@@ -83,8 +83,9 @@ public class Driver {
         sc.nextLine();
         testCreateProfile();
 
-        sc.close();
+        
 
+        sc.close();
         try {
             conn.close();
         } catch (SQLException e) {
@@ -119,12 +120,16 @@ public class Driver {
             Statement st = conn.createStatement();
             ResultSet rs = st.executeQuery(query);
 
+            System.out.println("Profile Table Contents");
+            System.out.println("----------------------");
             int count = 0;
             while (rs.next()) {
                 String userName = rs.getString("name");
                 String userPassword = rs.getString("password");
                 String userEmail = rs.getString("email");
                 String userDOB = rs.getString("date_of_birth");
+
+                System.out.println(userName + "     " + userPassword + "        " + userEmail + "       " + userDOB);
 
                 if (!userList[count].name.equals(userName) || !userList[count].password.equals(userPassword)
                         || !userList[count].email.equals(userEmail) || !userList[count].dob.equals(userDOB)) {
@@ -134,6 +139,8 @@ public class Driver {
 
                 count++;
             }
+
+            System.out.println("----------------------");
 
             if (count != userList.length) {
                 System.out.println("Profile Table Does Not Match Expected");
