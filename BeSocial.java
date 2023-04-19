@@ -896,20 +896,22 @@ public class BeSocial {
             }
         }
 
-        List<List<Integer>> chosenUsersList;
-
-        // If we are in driver mode and say don't accept all, accept the users we pass in
-        if (isDriverMode && acceptOneOrAll != -1) {
-            chosenUsersList = usersToAccept;
-        } else {
-            // If we are in driver mode and say accept all, set chosenUsers equal to allUsers
-            if (isDriverMode && acceptOneOrAll == -1) {
-                chosenUsers = allUsers;
-            }
-            chosenUsersList = new LinkedList<>();
-            chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
+        // If we are in driver mode and choose accept all, set chosenUsers to allUsers
+        if (isDriverMode && acceptOneOrAll == -1) {
+            chosenUsers = allUsers;
         }
 
+        List<List<Integer>> chosenUsersList = new LinkedList<>();
+        chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
+
+        
+        if (isDriverMode && acceptOneOrAll != -1) {
+            chosenUsersList.clear();
+            for (int i = 0; i < usersToAccept.size(); i++) {
+                chosenUsersList.add(usersToAccept.get(i));
+            }
+        }
+        
         List<List<Integer>> allUsersList = new LinkedList<>();
         allUsers.stream().forEach(i -> allUsersList.add(Arrays.asList(i[0], i[1])));
 
@@ -1010,6 +1012,8 @@ public class BeSocial {
                 st.close();
 
             } catch (SQLException e) {
+                System.out.println(e);
+                /*
                 String message = e.getMessage();
                 while ((e = e.getNextException()) != null) {
                     message.concat(e.getMessage());
@@ -1020,6 +1024,7 @@ public class BeSocial {
                 } else {
                     printErrors(e);
                 }
+                */
 
                 try {
                     conn.rollback();
