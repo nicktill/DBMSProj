@@ -14,7 +14,6 @@ import java.util.ArrayList;
  *  - Why do we have the updategroup trigger in phase 1? The confirmGroupMembership function says the accepted
         request should remain in pendingGroupMember. There is no indiction for pendingGroupMember whether or not the member was accepted previously
     - TASK 10 - Do we need the entire user profile or just their userID?
-    - 
  */
 
 import java.util.Arrays;
@@ -261,7 +260,6 @@ public class BeSocial {
         beSocial = null;
     }
 
-    // TODO CASE 1
     // * Given a name, email address, password and date of birth, add a new user to
     // the system by
     // * inserting a new entry into the profile relation. userIDs should be
@@ -382,7 +380,6 @@ public class BeSocial {
         System.out.println("------------------------------------------------------");
     }
 
-    // TODO case 2
     // * This functions prompts for a user email and removes the profile along with
     // all of their information from the system. When a profile is removed, the
     // system should use a trigger to delete
@@ -420,7 +417,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 4
     // * Create a pending friendship from the logged-in user profile to another user
     // profile based on
     // * userID. The application should display the name of the person that will be
@@ -447,6 +443,11 @@ public class BeSocial {
         } while (!validInput);
         
         sc.nextLine(); // Clear buffer
+
+        if (toID == userID) {
+            System.out.println("You cannot be friends with yourself!");
+            return;
+        }
 
         // Get the user entry and confirm the operation with the user
         try {
@@ -496,7 +497,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 5
     // * This task should first display a formatted, numbered list of all the
     // outstanding friend requests
     // * with the associated request text. Then the user should be prompted for a
@@ -646,7 +646,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 6
     // * Given a name, description, and membership limit (i.e., size), add a new
     // group to the system,
     // * add the current user as its first member with the role manager. gIDs should
@@ -736,7 +735,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 7
     // * Given a group ID and the request's text, create a pending request of adding
     // the logged-in user
     // * to the group by inserting a new entry into the pendingGroupMember relation.
@@ -775,7 +773,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 8
     // * This task should first display a formatted, numbered list of all the
     // pending group membership
     // * requests with the associated request text for any groups where the user is
@@ -1028,7 +1025,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 9
     // * This task should first prompt the user for the gID of the group they would
     // like to leave.
     // * The application should remove the user from the group in the groupMember
@@ -1102,7 +1098,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 10
     // * Given a string on which to match any user profile in the system, any item
     // in this string must be
     // * matched against the name and email fields of a user's profile. That is
@@ -1143,7 +1138,6 @@ public class BeSocial {
         Arrays.stream(userIDs).forEach(i -> System.out.println(i));
     }
 
-    // TODO CASE 11
     // * With this the user can send a message to one friend given the friend's
     // userID. The application
     // * should display the name of the recipient and the user should be prompted to
@@ -1188,14 +1182,18 @@ public class BeSocial {
         // Get name of the friend
         String friendName = "";
         try {
-            PreparedStatement s = conn.prepareStatement("SELECT name FROM profile WHERE userID=?;");
-            s.setInt(1, fID);
-            ResultSet rs = s.executeQuery();
-            if (!rs.next()) {
-                System.out.println("This friend does not exist");
+            CallableStatement c = conn.prepareCall("{ ? = call getFriendName(?, ?)}");
+            c.setInt(2, userID);
+            c.setInt(3, fID);
+            c.registerOutParameter(1, Types.VARCHAR);
+            c.execute();
+
+            friendName = c.getString(1);
+            
+            if (friendName == null) {
+                System.out.println("You are not friends with this user or they do not exist.");
                 return;
             }
-            friendName = rs.getString("name");
         } catch (SQLException e) {
             System.out.println("Error finding friend information");
             printErrors(e);
@@ -1225,7 +1223,8 @@ public class BeSocial {
             c.setInt(3, fID);
             c.setString(4, message);
             c.registerOutParameter(1, Types.BOOLEAN);
-            boolean res = c.execute();
+            c.execute();
+            boolean res = c.getBoolean(1);
             if (res) {
                 System.out.println("Message successfully sent!");
             }
@@ -1250,7 +1249,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 12
     // * With this the user can send a message to a recipient group given the group
     // ID, if the user is
     // * within the group. Every member of this group should receive the message.
@@ -1331,12 +1329,10 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 13
     // * When the user selects this option, the entire contents of every message
     // sent to the user (including group messages)
     // *should be displayed in a nicely formatted way.
     public void displayMessages() {
-        // TODO: Clarify if we should also display who sent it
         try {
             // Execute query
             PreparedStatement s = conn.prepareStatement("SELECT * FROM getMessages(?, ?);");
@@ -1355,8 +1351,12 @@ public class BeSocial {
             int i = 1;
             do {
                 // Print formatted message
-                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
-                // TODO: Have it display: msgID, who sent, body, and the time sent
+                String message = rs.getString(2);
+                int msgID = rs.getInt(1);
+                Timestamp t = rs.getTimestamp(3);
+                int fromID = rs.getInt(4);
+
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID, t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1364,7 +1364,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 14
     // * This should display messages in the same fashion as the previous task
     // except that only those
     // * messages sent since the last time the user logged into the system should be
@@ -1389,7 +1388,12 @@ public class BeSocial {
             int i = 1;
             do {
                 // Print formatted message
-                System.out.printf("%d.\n%s\n", i++, rs.getString("messageBody"));
+                String message = rs.getString(2);
+                int msgID = rs.getInt(1);
+                Timestamp t = rs.getTimestamp(3);
+                int fromID = rs.getInt(4);
+
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID, t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1397,7 +1401,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 15
     // * This task supports the browsing of the logged-in user's friends' profiles.
     // It first displays each
     // * of the user's friends' names and userIDs. Then it allows the user to either
@@ -1468,7 +1471,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 16
     // * This task should produce a ranked list of groups based on their number of
     // members.
     // * In the event that there are no groups in the system, a message No Groups to
@@ -1505,8 +1507,6 @@ public class BeSocial {
         }
     }
     
-
-    // TODO CASE 17
     // * This task should produce a ranked list of user profiles based on the number
     // of friends they
     // * have along with their number of friends.
@@ -1528,7 +1528,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 18
     // * Display the top k users with respect to the number of messages sent to the
     // logged-in user plus
     // * the number of messages received from the logged-in user in the past x
@@ -1571,7 +1570,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 19
     // Given a userID, find a path, if one exists, between the logged-in user and
     // that user profile with
     // at most 3 hops between them. A hop is defined as a friendship between any two
@@ -1590,7 +1588,6 @@ public class BeSocial {
             int firstHop = rs.getInt("secondID");
             int secondHop = rs.getInt("thirdID");
 
-            // TODO: Possibly delete
             if (rs.getInt("fromID") == -1) {
                 System.out.println("There is no three degree relation with this user.");
                 return;
@@ -1604,16 +1601,10 @@ public class BeSocial {
                 System.out.printf("%d --> %d --> %d --> %d\n", userID, firstHop, secondHop, toID);
             }
         } catch (SQLException e) {
-            // TODO: Come back to after meeting with Brian about this
-            if (e.getSQLState().equals("00001")) {
-                System.out.println("There is no three degree relation with this user.");
-            } else {
-                printErrors(e);
-            }
+            printErrors(e);
         }
     }
 
-    // TODO CASE 20
     // * The function should return the user to the top level of the UI after
     // marking the time of the
     // * user's logout in the user's lastlogin field of the user relation from the
@@ -1646,7 +1637,6 @@ public class BeSocial {
         }
     }
 
-    // TODO CASE 21
     // * This option should cleanly shut down and exit the program.
     public void exit() {
         // write code for exit here

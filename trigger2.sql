@@ -411,12 +411,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION getFriendName(uID INT, fID INT)
+RETURNS VARCHAR(50) AS
+$$
+    DECLARE
+        returnVal VARCHAR(50) := NULL;
+
+    BEGIN
+        SELECT P.name INTO returnVal
+        FROM profile P
+        WHERE P.userid=fID AND
+              EXISTS (SELECT * FROM friend WHERE (userid1=fID AND userid2=uID) OR (userid2=fID AND userid1=uID));
+
+        RETURN returnVal;
+    end;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
     RETURNS TABLE
             (
                 msgID       INT,
                 messageBody VARCHAR(200),
-                timeSent    TIMESTAMP
+                timeSent    TIMESTAMP,
+                fromID      INT
             )
 AS
 $$
@@ -424,7 +441,7 @@ BEGIN
     IF newMsg THEN
         -- Get all messages sent to the user after they logged in
         RETURN QUERY
-            SELECT M.msgid, M.messagebody, M.timesent
+            SELECT M.msgid, M.messagebody, M.timesent, M.fromid
             FROM messagerecipient AS MR
                      NATURAL JOIN message AS M
             WHERE MR.userid = toUser
@@ -432,7 +449,7 @@ BEGIN
             ORDER BY M.timesent;
     ELSE
         RETURN QUERY
-            SELECT M.msgid, M.messagebody, M.timesent
+            SELECT M.msgid, M.messagebody, M.timesent, M.fromid
             FROM messagerecipient AS MR
                      NATURAL JOIN message AS M
             WHERE MR.userid = toUser
@@ -602,9 +619,7 @@ BEGIN
         end loop;
 
     -- No solution within 3 hops
-    -- RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
     RETURN QUERY SELECT -1, -1, -1, -1;
-    -- TODO: Ask brian about returning error
 end;
 $$ LANGUAGE plpgsql;
 
@@ -621,8 +636,6 @@ DECLARE
     rec_profile     profile%ROWTYPE;
     rec_groupMember groupmember%ROWTYPE;
     rec_Friendship  RECORD;
-    rankCount       INT;
-    friendsCount    INT;
 
 BEGIN
     -- Create temporary table to store results
@@ -633,7 +646,6 @@ BEGIN
     )
         ON COMMIT DROP;
 
-    -- TODO: Check if we should omit profile 0
     -- Get network count for each user
     FOR rec_profile IN SELECT * FROM profile
         LOOP
