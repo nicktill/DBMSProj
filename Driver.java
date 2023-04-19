@@ -423,7 +423,8 @@ public class Driver {
     }
 
     private static void testTopMessages() {
-        System.out.println("Test Top Messages Not Implemented");
+        // Assumptions: sendMessagetoUser/Group has been run before
+        // 
     }
 
     private static void testRankProfiles() {
@@ -455,35 +456,149 @@ public class Driver {
     }
 
     private static void testSearchForProfile() {
+        // log out and log in to any user you want
+
+        // WILL HAVE TO REFACTOR, should be easy
+
+        // Choose a random string to search for and show that the results are none
+
+        // choose one of the users and enter a string that matches
+        
+        // Now choose two words, each one for a different user and show that the result is a union
         System.out.println("Test Search For Profile Not Implemented");
     }
 
+    // Nick
     private static void testLeaveGroup() {
         System.out.println("Test Leave Group Not Implemented");
+        // Query the DB for the filled group and show it's group members
+
+        // Log in to one user in that group
+
+        // Have that user leave that specified group
+
+        // Query for groupMembers in that group and show that the previous member
+        // has left but a new member filled that whole
+
+        // Now show pending groupRequests for that group and show that the user who was added had their pending
+        // entry removed
     }
 
     private static void testConfirmGroupMembership() {
-        System.out.println("Test Confirm Group Membership Not Implemented");
+        // Log into user from createGroup test
+
+        // Show the pending group member table before
+
+        // Try and accept members from the third group with a size of 2 to show that it won't go over group limit
+
+        // Show pending group members for group 3 to show that the users who were accepted but group is full won't be removed
+
+        // Accept pending members for the second group
+
+        // Show that the accepted members are no longer in the pendinggroupmember table but are in groupmember table as members
+
+        // logout
+
+        // log into admin
+
+        // show that admin has no groups
     }
 
     private static void testInitiateAddingGroup() {
-        System.out.println("Test Initiate Adding Group Not Implemented");
+        // Log into a user that was not used in testCreateGroup
+
+        // Show that there are no entries in pendingGroupMember
+
+        // Send a request to group 0, with body of "Hello, I would like to join your group!"
+
+        // Show that there is one entry in pendinggroupmember for group 0 with user id and message
+
+        // Send a request to group 1 with no body
+
+        // Show that there are two entries now, and one has the default message
+
+        // Try joining a group that does not exist and show that it will not change pendinggroupmember table
+
+        // Logout
     }
 
+    // Nick
     private static void testCreateGroup() {
-        System.out.println("Test Create Group Not Implemented");
+        // Login to random user, doesn't matter
+
+        // Print groupInfo to show that it is empty
+
+        // Create three groups, one of which has a max group size of 2
+
+        // Print groupInfo to show that three group have been created
+
+        // Print groupMember to show that the logged in user has been added as a manager of every group
+
+        // If all this is good, the test passed
+
+        // Logout of user
     }
 
+    // Steven
+    // TEST IT BY RUNNING BESOCIAL
+    // WRITE/TEST DRIVER FUNCTION
     private static void testConfirmFriendRequests() {
-        System.out.println("Test Confirm Friend Requests Not Implemented");
+        // Log in to user 2
+
+        // Add two more friend requests to user two
+
+        // Show that user 2 has three friend requests
+
+        // Show that user 2 has no friends
+
+        // Accept 1 friend
+
+        // Show that user 2 has one friend
+        
+        // Show that user 2 has two pending friend requests
+
+        // Accept all friend request for user 2
+
+        // Show that user 2 has three friends
+
+        // Show that user 2 has no friend requests left
+
+        // Log out of user 2
     }
 
+    // Nick
     private static void testInitiateFriendship() {
-        System.out.println("Test Initiate Friendship Not Implemented");
+        // SEND THE FRIEND REQUEST TO THE SAME USER CONFIRMFRIENDREQUESTS SENDS IT TO
+        
+        // Choose two users
+
+        // Logout, login to user 1
+
+        // Try sending friend request from user 1 to user 1 to show it doesn't work (should show error message)
+
+        // Print friend requests to user 2 to show they have none
+        
+        // Send friend request to user 2 from user 1
+    
+        // Query the database for the friendship and show that there is a pendingFriend record in the table
+        // From user 2 to user 1
+    
+        // If the request is present and matches to user 1, return true, else return false
+
+        // Logout
     }
 
+    // Nick
     private static void testLogin() {
-        System.out.println("Test Login Not Implemented");
+        // Start by calling logout for pure isolation
+
+        // Print the userID of beSocial, should be -1
+        
+        // Log in user
+
+        // Print the userID now, should not be -1
+
+        // Do comparison is old == new, if false, login worked if true login didnt work
     }
 
     private static void testDropProfile() {
@@ -503,6 +618,8 @@ public class Driver {
             System.out.println("Failed to remove the profiles from the relation");
             return;
         }
+
+        // Show that profile table is empty
 
         // Try and create profiles for each user
         for (int i = 0; i < userList.length; i++) {

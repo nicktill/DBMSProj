@@ -25,20 +25,21 @@ import java.util.Properties;
 public class BeSocial {
     private static Scanner sc;
     private static Connection conn;
-    private static int userID = -1;
+    public static int userID = -1;
     private static boolean isLoggedIn;
     private static final int ADMIN_USER_ID = 0;
     private static BeSocial beSocial;
+    private boolean isDriverMode;
 
     public boolean getIsLoggedIn() {
-        return this.isLoggedIn;
+        return isLoggedIn;
     }
 
     public boolean isProgramRunning() {
-        return this.beSocial == null;
+        return beSocial == null;
     }
 
-    public BeSocial(String databaseUsername, String databasePassword) {
+    public BeSocial(String databaseUsername, String databasePassword, boolean driver) {
         // Try and connect to the database
         try {
             Class.forName("org.postgresql.Driver");
@@ -55,6 +56,7 @@ public class BeSocial {
             if (sc == null) sc.close();
             System.exit(0);
         }
+        this.isDriverMode = driver;
     }
 
     public static void main(String[] args) {
@@ -76,7 +78,7 @@ public class BeSocial {
             System.exit(0);
         }
 
-        beSocial = new BeSocial(databaseUsername, databasePassword);
+        beSocial = new BeSocial(databaseUsername, databasePassword, false);
 
         // If the connection is properly established, clear command line and start
 
@@ -174,7 +176,7 @@ public class BeSocial {
                         beSocial.initiateFriendship();
                         break;
                     case 5:
-                        beSocial.confirmFriendRequests(userID);
+                        beSocial.confirmFriendRequests(-1, -1);
                         break;
                     case 6:
                     beSocial.createGroup();
@@ -183,7 +185,7 @@ public class BeSocial {
                     beSocial.initiateAddingGroup();
                         break;
                     case 8:
-                    beSocial.confirmGroupMembership();
+                    beSocial.confirmGroupMembership(-1, null);
                         break;
                     case 9:
                     beSocial.leaveGroup();
@@ -493,7 +495,7 @@ public class BeSocial {
     // Pending Friend
     // * Requests should be displayed to the user.
     // add to jonah branch and test
-    public void confirmFriendRequests(int userID) {
+    public void confirmFriendRequests(int userChoice, int numSelected) {
         try {
             String query = "SELECT * FROM listPendingFriends(?);";
             PreparedStatement listFriendsStatement = conn.prepareStatement(query);
@@ -517,19 +519,28 @@ public class BeSocial {
             }
             // otherwise continue with accepting friend requests
             // prompt user to accept all requests or one at a time
-            System.out.print(
-                    "Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
-                            "1. Accept all requests\n" +
-                            "2. Specify one request at a time\n");
-            int choice = sc.nextInt();
-            sc.nextLine();
-            // validate input
-            while (choice != 1 && choice != 2) {
-                System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
-                        "1. Accept all requests\n" +
-                        "2. Specify one request at a time\n");
+
+            int choice = -1;
+
+            // If we aren't in driver mode, get input from user, else get from parameter
+            if (!isDriverMode) {
+                System.out.print(
+                        "Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
+                                "1. Accept all requests\n" +
+                                "2. Specify one request at a time\n");
                 choice = sc.nextInt();
                 sc.nextLine();
+
+                // validate input
+                while (choice != 1 && choice != 2) {
+                    System.out.println("Invalid choice. Please either enter 1 or 2 as follows:\n\n" +
+                            "1. Accept all requests\n" +
+                            "2. Specify one request at a time\n");
+                    choice = sc.nextInt();
+                    sc.nextLine();
+                }
+            } else {
+                choice = userChoice;
             }
 
             // accept all requests
@@ -541,17 +552,29 @@ public class BeSocial {
                 System.out.println("Accepted all requests");
             } else if (choice == 2) {
                 // accept one request at a time
-                System.out.println(
-                        "Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
-                int fromID = sc.nextInt();
-                sc.nextLine();
+                int fromID = -1;
+                if (!isDriverMode) {
+                    System.out.println(
+                            "Enter the fromID of the request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                    fromID = sc.nextInt();
+                    sc.nextLine();
+                } else {
+                    fromID = numSelected;
+                }
                 while (fromID != -1) {
                     // validate input
-                    while (!fromIDs.contains(fromID)) {
-                        System.out.println(
-                                "Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
-                        fromID = sc.nextInt();
-                        sc.nextLine();
+                    if (!isDriverMode) {
+                        while (!fromIDs.contains(fromID)) {
+                            System.out.println(
+                                    "Invalid fromID. Please enter a valid fromID (or enter -1 to stop accepting and exit menu):");
+                            fromID = sc.nextInt();
+                            sc.nextLine();
+                        }
+                    } else {
+                        if (!fromIDs.contains(fromID)) {
+                            System.out.println("There is no friend request from that user");
+                            return;
+                        }
                     }
                     // accept request
                     acceptFriendRequest(userID, fromID);
@@ -573,8 +596,7 @@ public class BeSocial {
             return;
 
         } catch (SQLException e) {
-            System.err.println("Error: " + e.getMessage());
-            e.printStackTrace();
+            printErrors(e);
         }
     }
 
@@ -623,7 +645,7 @@ public class BeSocial {
 
         } catch (SQLException e) {
             // print error message
-            System.err.println("Error: " + e.getMessage());
+            printErrors(e);
         }
     }
 
@@ -777,7 +799,7 @@ public class BeSocial {
     // * the user. Furthermore, a message No groups are currently managed should
     // be displayed if
     // * the user is not a manager of any groups.
-    public void confirmGroupMembership() {
+    public void confirmGroupMembership(int acceptOneOrAll, List<List<Integer>> usersToAccept) {
         // Get the groups where the user is a manager
         List<Integer> groupIDs = new LinkedList<Integer>();
 
@@ -853,27 +875,40 @@ public class BeSocial {
         // Prompt the user for the number of request they would like to confirm (one at
         // a time), or let them confirm all
         HashSet<Integer[]> chosenUsers = new HashSet<>();
-        int numUsersChosen = 0;
-        while (numUsersChosen < allUsers.size()) {
-            System.out.print(
-                    "Enter one request you would like to confirm, -1 to confirm them all, and -2 when you are done: ");
-            int indexChosen = sc.nextInt();
-            sc.nextLine();
-            if (indexChosen == -1) {
-                chosenUsers = allUsers;
-                break;
-            } else if (indexChosen == -2) {
-                break;
-            } else {
-                numUsersChosen++;
-                Integer[] toAdd = { groupMembershipRequests.get(indexChosen).gID,
-                        groupMembershipRequests.get(indexChosen).userID };
-                chosenUsers.add(toAdd);
+        if (!isDriverMode) {
+            int numUsersChosen = 0;
+            while (numUsersChosen < allUsers.size()) {
+                System.out.print(
+                        "Enter one request you would like to confirm, -1 to confirm them all, and -2 when you are done: ");
+                int indexChosen = sc.nextInt();
+                sc.nextLine();
+                if (indexChosen == -1) {
+                    chosenUsers = allUsers;
+                    break;
+                } else if (indexChosen == -2) {
+                    break;
+                } else {
+                    numUsersChosen++;
+                    Integer[] toAdd = { groupMembershipRequests.get(indexChosen).gID,
+                            groupMembershipRequests.get(indexChosen).userID };
+                    chosenUsers.add(toAdd);
+                }
             }
         }
 
-        List<List<Integer>> chosenUsersList = new LinkedList<>();
-        chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
+        List<List<Integer>> chosenUsersList;
+
+        // If we are in driver mode and say don't accept all, accept the users we pass in
+        if (isDriverMode && acceptOneOrAll != -1) {
+            chosenUsersList = usersToAccept;
+        } else {
+            // If we are in driver mode and say accept all, set chosenUsers equal to allUsers
+            if (isDriverMode && acceptOneOrAll == -1) {
+                chosenUsers = allUsers;
+            }
+            chosenUsersList = new LinkedList<>();
+            chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
+        }
 
         List<List<Integer>> allUsersList = new LinkedList<>();
         allUsers.stream().forEach(i -> allUsersList.add(Arrays.asList(i[0], i[1])));
