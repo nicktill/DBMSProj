@@ -378,6 +378,7 @@ BEGIN
 
     IF rec_pending IS NOT NULL THEN
         INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
+        DELETE FROM pendinggroupmember P WHERE p.gid=rec_pending.gid AND p.userid=rec_pending.userid;
         -- Trigger handles the removal of the member
     END IF;
 END;
@@ -619,6 +620,7 @@ BEGIN
         end loop;
 
     -- No solution within 3 hops
+    -- RAISE EXCEPTION 'Sample Error'
     RETURN QUERY SELECT -1, -1, -1, -1;
 end;
 $$ LANGUAGE plpgsql;
