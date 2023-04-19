@@ -78,12 +78,112 @@ public class Driver {
 
         System.out.println("Starting Driver Program!\n");
 
-        // Test for method `createProfile`
+        // Test for method `createProfile` | Task 1
         System.out.println("Press enter to test createProfile");
         sc.nextLine();
         testCreateProfile();
 
-        
+        // Test for method `dropProfile` | Task 2
+        System.out.println("Press enter to test dropProfile");
+        sc.nextLine();
+        testDropProfile();
+
+        // Test for method `login` | Task 3
+        System.out.println("Press enter to test login");
+        sc.nextLine();
+        testLogin();
+
+        // Test for method `initiateFriendship` | Task 4
+        System.out.println("Press enter to test initiateFriendship");
+        sc.nextLine();
+        testInitiateFriendship();
+
+        // Test for method `confirmFriendRequests` | Task 5
+        System.out.println("Press enter to test confirmFriendRequests");
+        sc.nextLine();
+        testConfirmFriendRequests();
+
+        // Test for method `createGroup` | Task 6
+        System.out.println("Press enter to test createGroup");
+        sc.nextLine();
+        testCreateGroup();
+
+        // Test for method `initiateAddingGroup` | Task 7
+        System.out.println("Press enter to test initiateAddingGroup");
+        sc.nextLine();
+        testInitiateAddingGroup();
+
+        // Test for method `confirmGroupMembership` | Task 8
+        System.out.println("Press enter to test confirmGroupMembership");
+        sc.nextLine();
+        testConfirmGroupMembership();
+
+        // Test for method `leaveGroup` | Task 9
+        System.out.println("Press enter to test leaveGroup");
+        sc.nextLine();
+        testLeaveGroup();
+
+        // Test for method `searchForProfile` | Task 10
+        System.out.println("Press enter to test searchForProfile");
+        sc.nextLine();
+        testSearchForProfile();
+
+        // Test for method `sendMessageToUser` | Task 11
+        System.out.println("Press enter to test sendMessageToUser");
+        sc.nextLine();
+        testSendMessageToUser();
+
+        // Test for method `sendMessageToGroup` | Task 12
+        System.out.println("Press enter to test sendMessageToGroup");
+        sc.nextLine();
+        testSendMessageToGroup();
+
+        // Test for method `displayMessages` | Task 13
+        System.out.println("Press enter to test displayMessages");
+        sc.nextLine();
+        testDisplayMessages();
+
+        // Test for method `displayNewMessages` | Task 14
+        System.out.println("Press enter to test displayNewMessages");
+        sc.nextLine();
+        testDisplayNewMessages();
+
+        // Test for method `displayFriends` | Task 15
+        System.out.println("Press enter to test displayFriends");
+        sc.nextLine();
+        testDisplayFriends();
+
+        // Test for method `rankGroups` | Task 16
+        System.out.println("Press enter to test rankGroups");
+        sc.nextLine();
+        testRankGroups();
+
+        // Test for method `rankProfiles` | Task 17
+        System.out.println("Press enter to test rankProfiles");
+        sc.nextLine();
+        testRankProfiles();
+
+        // Test for method `topMessages` | Task 18
+        System.out.println("Press enter to test topMessages");
+        sc.nextLine();
+        testTopMessages();
+
+        // Test for method `threeDegrees` | Task 19
+        System.out.println("Press enter to test threeDegrees");
+        sc.nextLine();
+        testThreeDegrees();
+
+        // Test for method `logout` | Task 20
+        System.out.println("Press enter to test logout");
+        sc.nextLine();
+        testLogout();
+
+        // Test for method `exit` | Task 21
+        System.out.println("Press enter to test exit");
+        sc.nextLine();
+        testExit();
+
+        System.out.println("All tests completed");
 
         sc.close();
         try {
@@ -91,6 +191,86 @@ public class Driver {
         } catch (SQLException e) {
             System.out.println("Error closing connection");
         }
+    }
+
+    private static void testExit() {
+        System.out.println("Test Exit Not Implemented");
+    }
+
+    private static void testLogout() {
+        System.out.println("Test Logout Not Implemented");
+    }
+
+    private static void testThreeDegrees() {
+        System.out.println("Test Three Degrees Not Implemented");
+    }
+
+    private static void testTopMessages() {
+        System.out.println("Test Top Messages Not Implemented");
+    }
+
+    private static void testRankProfiles() {
+        System.out.println("Test Rank Profiles Not Implemented");
+    }
+
+    private static void testRankGroups() {
+        System.out.println("Test Rank Groups Not Implemented");
+    }
+
+    private static void testDisplayFriends() {
+        System.out.println("Test Display Friends Not Implemented");
+    }
+
+    private static void testDisplayNewMessages() {
+        System.out.println("Test Display New Messages Not Implemented");
+    }
+
+    private static void testDisplayMessages() {
+        System.out.println("Test Display Messages Not Implemented");
+    }
+
+    private static void testSendMessageToGroup() {
+        System.out.println("Test Send Message To Group Not Implemented");
+    }
+
+    private static void testSendMessageToUser() {
+        System.out.println("Test Send Message To User Not Implemented");
+    }
+
+    private static void testSearchForProfile() {
+        System.out.println("Test Search For Profile Not Implemented");
+    }
+
+    private static void testLeaveGroup() {
+        System.out.println("Test Leave Group Not Implemented");
+    }
+
+    private static void testConfirmGroupMembership() {
+        System.out.println("Test Confirm Group Membership Not Implemented");
+    }
+
+    private static void testInitiateAddingGroup() {
+        System.out.println("Test Initiate Adding Group Not Implemented");
+    }
+
+    private static void testCreateGroup() {
+        System.out.println("Test Create Group Not Implemented");
+    }
+
+    private static void testConfirmFriendRequests() {
+        System.out.println("Test Confirm Friend Requests Not Implemented");
+    }
+
+    private static void testInitiateFriendship() {
+        System.out.println("Test Initiate Friendship Not Implemented");
+    }
+
+    private static void testLogin() {
+        System.out.println("Test Login Not Implemented");
+    }
+
+    private static void testDropProfile() {
+        System.out.println("Test Drop Profile Not Implemented");
     }
 
     private static void testCreateProfile() {
