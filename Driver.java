@@ -1,5 +1,6 @@
 import java.sql.Timestamp;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -219,24 +220,31 @@ public class Driver {
         beSocial.login("admin", "admin");
 
         // Get the user's timestamp when they log in
-        Timestamp logInTimestamp = null;
+        String profileRowBefore = null;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT lastlogin FROM profile WHERE userID=0;";
+            String query = "SELECT * FROM profile WHERE userID=0;";
             ResultSet rs = st.executeQuery(query);
 
             rs.next();
-            logInTimestamp = rs.getTimestamp("lastlogin");
+            int userID = rs.getInt("userID");
+            String name = rs.getString("name");
+            String email = rs.getString("email");
+            String password = rs.getString("password");
+            Date dob = rs.getDate("date_of_birth");
+            Timestamp lastLogin = rs.getTimestamp("lastlogin");
+
+            profileRowBefore = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " " + lastLogin.toString();
 
             st.close();
         } catch (SQLException e) {
             System.out.println(e);
         }
 
-        if (logInTimestamp == null) {
+        if (profileRowBefore == null) {
             System.out.println("Error getting lastlogin timestamp in test logout");
         } else {
-            System.out.println("\nTime In Profile Table When Logged In: " + logInTimestamp);
+            System.out.println("\nProfile Table At Login: " + profileRowBefore);
         }
 
         // Get the display when logged in
@@ -268,24 +276,31 @@ public class Driver {
         beSocial.displayMenu(beSocial.getIsLoggedIn());
 
         // Get the user's timestamp and make sure it changed to the clock timestamp
-        Timestamp logOutTimeStamp = null;
+        String profileRowAfter = null;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT lastlogin FROM profile WHERE userID=0;";
+            String query = "SELECT * FROM profile WHERE userID=0;";
             ResultSet rs = st.executeQuery(query);
 
             rs.next();
-            logOutTimeStamp = rs.getTimestamp("lastlogin");
+            int userID = rs.getInt("userID");
+            String name = rs.getString("name");
+            String email = rs.getString("email");
+            String password = rs.getString("password");
+            Date dob = rs.getDate("date_of_birth");
+            Timestamp lastLogin = rs.getTimestamp("lastlogin");
+
+            profileRowAfter = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " " + lastLogin.toString();
 
             st.close();
         } catch (SQLException e) {
             System.out.println(e);
         }
 
-        if (logOutTimeStamp == null) {
+        if (profileRowAfter == null) {
             System.out.println("Error getting lastlogin timestamp in test logout");
         } else {
-            System.out.println("\nTime In Profile Table When Logged In: " + logOutTimeStamp);
+            System.out.println("\nProfile Row After Logout: " + profileRowAfter);
         }
 
         System.out.println("\nSetting Clock back to default");
@@ -305,7 +320,7 @@ public class Driver {
             System.out.println(e);
         }
 
-        if (logInTimestamp.equals(logOutTimeStamp)) {
+        if (profileRowBefore.equals(profileRowAfter)) {
             System.out.println("\nTest Logout Failed");
         } else {
             System.out.println("\nTest Logout Passed");
