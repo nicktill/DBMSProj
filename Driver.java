@@ -73,7 +73,7 @@ public class Driver {
         }
 
         // Create the BeSocial Object
-        beSocial = new BeSocial(databaseUsername, databasePassword);
+        beSocial = new BeSocial(databaseUsername, databasePassword, true);
 
         System.out.print("\033\143"); // Clears the command line console, shoutout stack overflow
 
@@ -540,52 +540,401 @@ public class Driver {
     }
 
     // Steven
-    // TEST IT BY RUNNING BESOCIAL
-    // WRITE/TEST DRIVER FUNCTION
     private static void testConfirmFriendRequests() {
-        // Log in to user 2
-
         // Add two more friend requests to user two
+        beSocial.login(user1.name, user1.password);
+        beSocial.initiateFriendship(2);
+        beSocial.logout();
+
+        beSocial.login(user3.name, user3.password);
+        beSocial.initiateFriendship(2);
+        beSocial.logout();
+
+        // Log in to user 2
+        beSocial.login(user2.name, user2.password);
 
         // Show that user 2 has three friend requests
+        boolean test1 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("pendingFriend at start of testConfirmFriendRequest:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 3");
+            System.out.println("Actual Count: " + count);
+
+            test1 = (count == 3);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
 
         // Show that user 2 has no friends
+        boolean test2 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM friend WHERE userID1=2 OR userID2=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("User 2 Friends: ");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int userID1 = rs.getInt("userID1");
+                int userID2 = rs.getInt("userID2");
+                Date JDate = rs.getDate("JDate");
+                String requestText = rs.getString("requestText");
+
+                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 0");
+            System.out.println("Actual Count: " + count);
+
+            test2 = (count == 0);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
 
         // Accept 1 friend
+        System.out.println("Accepting Friend Request From User 4");
+        beSocial.confirmFriendRequests(2, 4);
 
         // Show that user 2 has one friend
+        boolean test3 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM friend WHERE userID1=2 OR userID2=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("User 2 Friends: ");
+            int count = 0;
+            while (rs.next()) {
+                int userID1 = rs.getInt("userID1");
+                int userID2 = rs.getInt("userID2");
+                Date JDate = rs.getDate("JDate");
+                String requestText = rs.getString("requestText");
+
+                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+
+                count++;
+            }
+            System.out.println("Expected Count: 1");
+            System.out.println("Actual Count: " + count);
+
+            test3 = (count == 1);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
+
+        // Show that the other two friend requests were deleted
+        boolean test4 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("pendingFriend table:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 0");
+            System.out.println("Actual Count: " + count);
+
+            test4 = (count == 0);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
         
-        // Show that user 2 has two pending friend requests
+        // Add 2 friend requests and show they are there
+        beSocial.logout();
+        beSocial.login(user1.name, user1.password);
+        beSocial.initiateFriendship(2);
+        beSocial.logout();
+
+        beSocial.login(user3.name, user3.password);
+        beSocial.initiateFriendship(2);
+        beSocial.logout();
+
+        // Show that user 2 has two friend requests
+        beSocial.login(user2.name, user2.password);
+        boolean test5 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("pendingFriend after adding two friend requests:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 2");
+            System.out.println("Actual Count: " + count);
+
+            test5 = (count == 2);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
 
         // Accept all friend request for user 2
+        beSocial.confirmFriendRequests(1, 0);
 
         // Show that user 2 has three friends
+        boolean test6 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM friend WHERE userID1=2 OR userID2=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("User 2 Friends: ");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int userID1 = rs.getInt("userID1");
+                int userID2 = rs.getInt("userID2");
+                Date JDate = rs.getDate("JDate");
+                String requestText = rs.getString("requestText");
+
+                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 3");
+            System.out.println("Actual Count: " + count);
+
+            test6 = (count == 3);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
 
         // Show that user 2 has no friend requests left
+        // Show that user 2 has three friend requests
+        boolean test7 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("pendingFriend at end of testConfirmFriendRequest:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 0");
+            System.out.println("Actual Count: " + count);
+
+            test7 = (count == 0);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
+
+        // Show that if there are no friend requests nothing happens
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.confirmFriendRequests(2, 10);
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+
+        System.out.println(output);
+        boolean test8 = output.contains("No Pending Friend Requests");
+
+        // Show that trying to accept a request from a user that did not request to be your friend doesn't work
+        beSocial.logout();
+        beSocial.login(user1.name, user1.password);
+        beSocial.initiateFriendship(2);
+        beSocial.logout();
+
+        beSocial.login(user2.name, user2.password);
+
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        old = System.out;
+        System.setOut(ps);
+
+        beSocial.confirmFriendRequests(2, 10);
+
+        System.out.flush();
+        System.setOut(old);
+
+        output = baos.toString();
+
+        System.out.println(output);
+        boolean test9 = output.contains("There is no friend request from that user");
+
+        if (test1 && test2 && test3 && test4 && test5 && test6 && test7 && test8 && test9) {
+            System.out.println("Confirm Friend Request Passed");
+        } else {
+            System.out.println("Test Confirm Friend Request Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
+            System.out.println("Test 5: " + test5);
+            System.out.println("Test 6: " + test6);
+            System.out.println("Test 7: " + test7);
+            System.out.println("Test 8: " + test8);
+            System.out.println("Test 9: " + test9);
+        }
 
         // Log out of user 2
+        beSocial.logout();
     }
 
     // Nick
     private static void testInitiateFriendship() {
-        // SEND THE FRIEND REQUEST TO THE SAME USER CONFIRMFRIENDREQUESTS SENDS IT TO
-        
-        // Choose two users
+        // SEND THE FRIEND REQUEST TO USER 2 FROM USER 4
 
-        // Logout, login to user 1
+        // Login to user 4
+        beSocial.login(user4.name, user4.password);
 
-        // Try sending friend request from user 1 to user 1 to show it doesn't work (should show error message)
+        // Try sending friend request from user 4 to user 4 to show it doesn't work (should show error message)
+        System.out.println("Trying to send friend request to self:");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.initiateFriendship(4);
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+
+        System.out.println(output);
+        boolean test1 = output.contains("You cannot be friends with yourself!");
 
         // Print friend requests to user 2 to show they have none
+        boolean test2 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing User 2's Friend Requests:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 0");
+            System.out.println("Actual Count: " + count);
+
+            test2 = (count == 0);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
         
         // Send friend request to user 2 from user 1
+        beSocial.initiateFriendship(2);
     
         // Query the database for the friendship and show that there is a pendingFriend record in the table
         // From user 2 to user 1
+        boolean test3 = false;
+        boolean test4 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingFriend WHERE toID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Showing User 2's Pending Friend Table After Request:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            int fromID = -1;
+            while (rs.next()) {
+                fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                System.out.println(fromID + "       " + toID + "        " + requestText);
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+            System.out.println("Expected Count: 1");
+            System.out.println("Actual Count: " + count);
+
+            test3 = (count == 1);
+
+            test4 = (fromID == 4);
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Exception occurred in testConfirmFriendRequest");
+        }
     
         // If the request is present and matches to user 1, return true, else return false
+        if (test1 && test2 && test3 && test4) {
+            System.out.println("Initiate Friendship Test Passed");
+        } else {
+            System.out.println("Initiate Friendship Test Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
 
+        }
         // Logout
+        beSocial.logout();
     }
 
     // Nick

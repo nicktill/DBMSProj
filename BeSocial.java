@@ -52,8 +52,9 @@ public class BeSocial {
         } catch (Exception e) {
             System.out.println(String.format(
                     "Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
-            
-            if (sc == null) sc.close();
+
+            if (sc == null)
+                sc.close();
             System.exit(0);
         }
         this.isDriverMode = driver;
@@ -74,7 +75,8 @@ public class BeSocial {
             databasePassword = sc.nextLine();
         } catch (Exception e) {
             System.out.println("Error retrieving username and password");
-            if (sc != null) sc.close();
+            if (sc != null)
+                sc.close();
             System.exit(0);
         }
 
@@ -91,7 +93,8 @@ public class BeSocial {
             int userInput = -1;
             isLoggedIn = false;
             while (true) {
-                if (beSocial == null) break;
+                if (beSocial == null)
+                    break;
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
@@ -162,7 +165,7 @@ public class BeSocial {
                         beSocial.createProfile(name, email, password, dob);
                         break;
                     case 2:
-                    beSocial.dropProfile();
+                        beSocial.dropProfile();
                         break;
                     case 3:
                         String username;
@@ -173,49 +176,53 @@ public class BeSocial {
                         beSocial.login(username, password);
                         break;
                     case 4:
-                        beSocial.initiateFriendship();
+                        System.out.print("Enter the userID of the friend you want to request: ");
+                        int toUID = sc.nextInt();
+                        sc.nextLine(); // Clear buffer
+
+                        beSocial.initiateFriendship(toUID);
                         break;
                     case 5:
                         beSocial.confirmFriendRequests(-1, -1);
                         break;
                     case 6:
-                    beSocial.createGroup();
+                        beSocial.createGroup();
                         break;
                     case 7:
-                    beSocial.initiateAddingGroup();
+                        beSocial.initiateAddingGroup();
                         break;
                     case 8:
-                    beSocial.confirmGroupMembership(-1, null);
+                        beSocial.confirmGroupMembership(-1, null);
                         break;
                     case 9:
-                    beSocial.leaveGroup();
+                        beSocial.leaveGroup();
                         break;
                     case 10:
-                    beSocial.searchForProfile();
+                        beSocial.searchForProfile();
                         break;
                     case 11:
-                    beSocial.sendMessageToUser();
+                        beSocial.sendMessageToUser();
                         break;
                     case 12:
-                    beSocial.sendMessageToGroup();
+                        beSocial.sendMessageToGroup();
                         break;
                     case 13:
-                    beSocial.displayMessages();
+                        beSocial.displayMessages();
                         break;
                     case 14:
-                    beSocial.displayNewMessages();
+                        beSocial.displayNewMessages();
                         break;
                     case 15:
-                    beSocial.displayFriends();
+                        beSocial.displayFriends();
                         break;
                     case 16:
-                    beSocial.rankGroups();
+                        beSocial.rankGroups();
                         break;
                     case 17:
-                    beSocial.rankProfiles();
+                        beSocial.rankProfiles();
                         break;
                     case 18:
-                    beSocial.topMessages();
+                        beSocial.topMessages();
                         break;
                     case 19:
                         System.out.println("Enter the user ID of the user you want to find a relationship with:");
@@ -224,10 +231,10 @@ public class BeSocial {
                         beSocial.threeDegrees(toID);
                         break;
                     case 20:
-                    beSocial.logout();
+                        beSocial.logout();
                         break;
                     case 21:
-                    beSocial.exit();
+                        beSocial.exit();
                         break;
                 }
             }
@@ -237,7 +244,8 @@ public class BeSocial {
         }
 
         System.out.println("Thank you for using BeSocial");
-        if (beSocial != null) beSocial.endProgram();
+        if (beSocial != null)
+            beSocial.endProgram();
     }
 
     /**
@@ -252,7 +260,8 @@ public class BeSocial {
         } catch (SQLException e) {
             System.out.println("Error closing DB connection");
         }
-        if (sc != null) sc.close();
+        if (sc != null)
+            sc.close();
         beSocial = null;
     }
 
@@ -422,16 +431,11 @@ public class BeSocial {
     // * confirmation should be requested of the user before an entry is inserted
     // into the pendingFriend
     // * relation, and success or failure feedback is displayed for the user.
-    public void initiateFriendship() {
-        System.out.print("Enter the userID of the friend you want to request: ");
-        int toID = sc.nextInt();
-        sc.nextLine(); // Clear buffer
-
+    public void initiateFriendship(int toID) {
         if (toID == userID) {
             System.out.println("You cannot be friends with yourself!");
             return;
         }
-
         // Get the user entry and confirm the operation with the user
         try {
             PreparedStatement statement = conn.prepareStatement(
@@ -444,7 +448,13 @@ public class BeSocial {
             }
             String name = rs.getString("name");
             System.out.printf("You want to request a friendship with %s? (y/n): ", name);
-            char ans = sc.nextLine().toLowerCase().charAt(0);
+            char ans = 'n';
+            if (!isDriverMode) {
+                sc.nextLine().toLowerCase().charAt(0);
+            } else {
+                ans = 'y';
+            }
+
             if (ans == 'n') {
                 System.out.println("Okay. This user will not be added");
                 return;
@@ -455,8 +465,11 @@ public class BeSocial {
 
         // Now actually insert the pending friendship
         System.out.println("What would you like your request to say?: ");
-        String req = sc.nextLine();
-        req = req.substring(0, Math.min(req.length(), 200));
+        String req = "";
+        if (!isDriverMode) {
+            req = sc.nextLine();
+            req = req.substring(0, Math.min(req.length(), 200));
+        }
         if (req.equals(""))
             req = null;
         try {
@@ -525,7 +538,8 @@ public class BeSocial {
             // If we aren't in driver mode, get input from user, else get from parameter
             if (!isDriverMode) {
                 System.out.print(
-                        "Specify whether you would like to accept all requests, or specify one request at a time: \n\n" +
+                        "Specify whether you would like to accept all requests, or specify one request at a time: \n\n"
+                                +
                                 "1. Accept all requests\n" +
                                 "2. Specify one request at a time\n");
                 choice = sc.nextInt();
@@ -578,10 +592,14 @@ public class BeSocial {
                     }
                     // accept request
                     acceptFriendRequest(userID, fromID);
-                    System.out.println("Accepted request from " + fromID
-                            + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
-                    fromID = sc.nextInt();
-                    sc.nextLine();
+                    if (!isDriverMode) {
+                        System.out.println("Accepted request from " + fromID
+                                + ". Enter the fromID of the next request you'd like to accept (or enter -1 to stop accepting and exit menu):");
+                        fromID = sc.nextInt();
+                        sc.nextLine();
+                    } else {
+                        fromID = -1;
+                    }
                 }
 
             }
@@ -904,14 +922,13 @@ public class BeSocial {
         List<List<Integer>> chosenUsersList = new LinkedList<>();
         chosenUsers.stream().forEach(i -> chosenUsersList.add(Arrays.asList(i[0], i[1])));
 
-        
         if (isDriverMode && acceptOneOrAll != -1) {
             chosenUsersList.clear();
             for (int i = 0; i < usersToAccept.size(); i++) {
                 chosenUsersList.add(usersToAccept.get(i));
             }
         }
-        
+
         List<List<Integer>> allUsersList = new LinkedList<>();
         allUsers.stream().forEach(i -> allUsersList.add(Arrays.asList(i[0], i[1])));
 
@@ -1014,17 +1031,18 @@ public class BeSocial {
             } catch (SQLException e) {
                 System.out.println(e);
                 /*
-                String message = e.getMessage();
-                while ((e = e.getNextException()) != null) {
-                    message.concat(e.getMessage());
-                }
-
-                if (message.contains("Cannot exceed max group size")) {
-                    System.out.println("Cannot accept any more people into group " + chosenUsersList.get(i).get(0));
-                } else {
-                    printErrors(e);
-                }
-                */
+                 * String message = e.getMessage();
+                 * while ((e = e.getNextException()) != null) {
+                 * message.concat(e.getMessage());
+                 * }
+                 * 
+                 * if (message.contains("Cannot exceed max group size")) {
+                 * System.out.println("Cannot accept any more people into group " +
+                 * chosenUsersList.get(i).get(0));
+                 * } else {
+                 * printErrors(e);
+                 * }
+                 */
 
                 try {
                     conn.rollback();
@@ -1210,7 +1228,7 @@ public class BeSocial {
             c.execute();
 
             friendName = c.getString(1);
-            
+
             if (friendName == null) {
                 System.out.println("You are not friends with this user or they do not exist.");
                 return;
@@ -1377,7 +1395,8 @@ public class BeSocial {
                 Timestamp t = rs.getTimestamp(3);
                 int fromID = rs.getInt(4);
 
-                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID, t.toString(), message);
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
+                        t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1414,7 +1433,8 @@ public class BeSocial {
                 Timestamp t = rs.getTimestamp(3);
                 int fromID = rs.getInt(4);
 
-                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID, t.toString(), message);
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
+                        t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1507,27 +1527,27 @@ public class BeSocial {
             PreparedStatement rankGroups = conn.prepareStatement(rankGroupsStatement);
             ResultSet rs = rankGroups.executeQuery();
             System.out.println(String.format("%-10s %-30s %-20s", "Group ID", "Group Name", "Number of Members"));
-    
+
             boolean hasResults = rs.next();
-    
+
             if (!hasResults) {
                 System.out.println("No Groups to Rank");
             }
-    
+
             while (hasResults) {
                 System.out.println(String.format("%-10s %-30s %-20s",
                         rs.getString("gID"),
                         rs.getString("name"),
                         rs.getString("member_count")));
-    
+
                 hasResults = rs.next();
             }
-    
+
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
-    
+
     // * This task should produce a ranked list of user profiles based on the number
     // of friends they
     // * have along with their number of friends.
