@@ -76,7 +76,8 @@ BEGIN
 
     FOR rec_pending IN SELECT *
                        FROM pendinggroupmember
-                       WHERE gid = OLD.gid AND requesttime <= maxLast
+                       WHERE gid = OLD.gid
+                         AND requesttime <= maxLast
                        ORDER BY requesttime
         LOOP
             IF curSize < groupSize THEN
@@ -121,7 +122,7 @@ CREATE OR REPLACE TRIGGER createNewProfile
     BEFORE INSERT
     ON profile
     FOR EACH ROW
-    EXECUTE FUNCTION createProfile();
+EXECUTE FUNCTION createProfile();
 
 -- Trigger to make sure profile IDs keep increasing by 1
 
@@ -155,18 +156,24 @@ EXECUTE FUNCTION increment_pid();
 -- add to trigger2.sql
 
 -- IF EXISTS ALREADY DROP
- DROP FUNCTION IF EXISTS listPendingFriends(integer);
+DROP FUNCTION IF EXISTS listPendingFriends(integer);
 -- * tested and works
 CREATE OR REPLACE FUNCTION listPendingFriends(userID INT)
-    RETURNS TABLE(requestText text, fromID integer)
-    AS
+    RETURNS TABLE
+            (
+                requestText text,
+                fromID      integer
+            )
+AS
 $$
 BEGIN
     -- cast to text because of the way postgres handles text
-    RETURN QUERY SELECT pf.requestText::text AS requestText, pf.fromID AS fromID FROM pendingFriend pf WHERE pf.toID = userID;
+    RETURN QUERY SELECT pf.requestText::text AS requestText, pf.fromID AS fromID
+                 FROM pendingFriend pf
+                 WHERE pf.toID = userID;
 END;
-$$ 
-LANGUAGE plpgsql;
+$$
+    LANGUAGE plpgsql;
 
 
 -- * works (could use more testing)
@@ -186,7 +193,7 @@ CREATE OR REPLACE TRIGGER deletePendingFriendAfterInsert
 EXECUTE FUNCTION deletePending();
 -- Adds a friend request for a user
 CREATE OR REPLACE FUNCTION addFriendRequest(fromUser INT, toUser INT, text VARCHAR(200))
-RETURNS BOOLEAN AS
+    RETURNS BOOLEAN AS
 $$
 DECLARE
 
@@ -196,10 +203,11 @@ BEGIN
     ELSE
         INSERT INTO pendingFriend VALUES (fromUser, toUser);
     END IF;
-    
+
     RETURN TRUE;
 
-    EXCEPTION WHEN OTHERS THEN
+EXCEPTION
+    WHEN OTHERS THEN
         RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql;
@@ -227,19 +235,30 @@ CREATE OR REPLACE TRIGGER createNewMember
     BEFORE INSERT
     ON groupMember
     FOR EACH ROW
-    EXECUTE FUNCTION createMember();
+EXECUTE FUNCTION createMember();
 
 -- Adds a user to pendingGroupMember upon request
-CREATE OR REPLACE PROCEDURE addPendingMember(gID INT, uID int, requestText VARCHAR(200))
+CREATE OR REPLACE PROCEDURE addPendingMember(groupID INT, uID int, requestText VARCHAR(200))
 AS
 $$
-    BEGIN
-        IF requestText IS NULL THEN
-            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, (SELECT pseudo_time FROM clock));
-        ELSE
-            INSERT INTO pendinggroupmember VALUES (addPendingMember.gID, uID, requestText, (SELECT pseudo_time FROM clock));
-        END IF;
-    END;
+DECLARE
+    groupMemberIdRecord RECORD;
+BEGIN
+    -- Check if the user is already in the group
+    FOR groupMemberIdRecord IN SELECT userID FROM groupmember WHERE gID = groupID
+        LOOP
+            IF groupMemberIdRecord.userID = uID THEN
+                RAISE EXCEPTION 'User_in_group' USING ERRCODE = '00001';
+                RETURN;
+            END IF;
+        END LOOP;
+
+    IF requestText IS NULL THEN
+        INSERT INTO pendinggroupmember VALUES (groupID, uID, (SELECT pseudo_time FROM clock));
+    ELSE
+        INSERT INTO pendinggroupmember VALUES (groupID, uID, requestText, (SELECT pseudo_time FROM clock));
+    END IF;
+END;
 $$ LANGUAGE plpgsql;
 
 -- Change timestamp in groupMember for new insert
@@ -265,7 +284,7 @@ CREATE OR REPLACE TRIGGER createPendingGroupMember
     BEFORE INSERT
     ON pendingGroupMember
     FOR EACH ROW
-    EXECUTE FUNCTION createPendingGroupMember();
+EXECUTE FUNCTION createPendingGroupMember();
 
 -- Generate a message ID for messages inserted into table
 
@@ -273,7 +292,7 @@ CREATE OR REPLACE FUNCTION createMessageID()
     RETURNS TRIGGER AS
 $$
 DECLARE
-    maxID int := NULL;
+    maxID   int := NULL;
     curTime TIMESTAMP;
 BEGIN
     SELECT MAX(msgID)
@@ -301,11 +320,11 @@ CREATE OR REPLACE TRIGGER createNewMessageID
     BEFORE INSERT
     ON message
     FOR EACH ROW
-    EXECUTE FUNCTION createMessageID();
+EXECUTE FUNCTION createMessageID();
 
 -- Function that sends a message to everyone in a given group
 CREATE OR REPLACE FUNCTION sendMessageToGroup(user_ID int, group_ID int, messageText VARCHAR(200))
-RETURNS BOOLEAN
+    RETURNS BOOLEAN
 AS
 $$
 DECLARE
@@ -313,13 +332,14 @@ DECLARE
 BEGIN
     -- Get the members of gID except for the sender
     -- Loop through these members and for each, insert into the message table
-        -- There is a trigger which handles message ID and timestamp
-        -- There is also a trigger which handles inserting into messageRecipient table
+    -- There is a trigger which handles message ID and timestamp
+    -- There is also a trigger which handles inserting into messageRecipient table
     FOR member_record IN SELECT userID FROM groupMember WHERE gID = group_ID AND userID != user_ID
-    LOOP
-        INSERT INTO message VALUES(-1, user_ID, messageText, member_record.userID, group_ID, '2022-01-01 00:00:00');
-        -- TODO: Address changes to message id and time with steven
-    END LOOP;
+        LOOP
+            INSERT INTO message
+            VALUES (-1, user_ID, messageText, member_record.userID, group_ID, '2022-01-01 00:00:00');
+            -- TODO: Address changes to message id and time with steven
+        END LOOP;
 
     RETURN true;
 END;
@@ -328,306 +348,366 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE PROCEDURE leaveGroup(userID INT, gID INT)
 AS
 $$
-    DECLARE
-        groupNum INT := NULL;
-        rec_pending pendinggroupmember%ROWTYPE := NULL;
-    BEGIN
-        -- Set the constraints to be deferred
-        SET CONSTRAINTS ALL DEFERRED;
+DECLARE
+    groupNum    INT                        := NULL;
+    rec_pending pendinggroupmember%ROWTYPE := NULL;
+BEGIN
+    -- Set the constraints to be deferred
+    SET CONSTRAINTS ALL DEFERRED;
 
-        -- Make sure that the user is in the group
-        SELECT G.gid INTO groupNum
-        FROM groupmember AS G
-        WHERE G.userid=leaveGroup.userID AND G.gid=leaveGroup.gID;
+    -- Make sure that the user is in the group
+    SELECT G.gid
+    INTO groupNum
+    FROM groupmember AS G
+    WHERE G.userid = leaveGroup.userID
+      AND G.gid = leaveGroup.gID;
 
-        IF groupNum IS NULL THEN
-            RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
-        END IF;
+    IF groupNum IS NULL THEN
+        RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
+    END IF;
 
-        -- Now remove the group member
-        DELETE FROM groupmember AS g WHERE g.userid = leaveGroup.userID AND g.gid = leaveGroup.gID;
+    -- Now remove the group member
+    DELETE FROM groupmember AS g WHERE g.userid = leaveGroup.userID AND g.gid = leaveGroup.gID;
 
-        -- Now add the FIRST member and update their last confirmed time
-        SELECT * INTO rec_pending
-        FROM pendinggroupmember AS P
-        WHERE p.gid=leaveGroup.gID
-        ORDER BY requesttime;
+    -- Now add the FIRST member and update their last confirmed time
+    SELECT *
+    INTO rec_pending
+    FROM pendinggroupmember AS P
+    WHERE p.gid = leaveGroup.gID
+    ORDER BY requesttime;
 
-        IF rec_pending IS NOT NULL THEN
-            INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
-            -- Trigger handles the removal of the member
-        END IF;
-    END;
+    IF rec_pending IS NOT NULL THEN
+        INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
+        -- Trigger handles the removal of the member
+    END IF;
+END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION sendMessageToUser(fromUser INT, toUser INT, text varchar(200))
-RETURNS BOOLEAN AS
+    RETURNS BOOLEAN AS
 $$
-    DECLARE
-        time timestamp;
-        maxMessage INT;
-    BEGIN
-        -- Get the max user id
-        SELECT MAX(msgid) INTO maxMessage
-        FROM message;
+DECLARE
+    time       timestamp;
+    maxMessage INT;
+BEGIN
+    -- Get the max user id
+    SELECT MAX(msgid)
+    INTO maxMessage
+    FROM message;
 
-        IF maxMessage IS NULL THEN
-            maxMessage := 0;
-        end if;
+    IF maxMessage IS NULL THEN
+        maxMessage := 0;
+    end if;
 
-        -- Get the time for when the message will be sent
-        SELECT pseudo_time INTO time
-        FROM clock;
+    -- Get the time for when the message will be sent
+    SELECT pseudo_time
+    INTO time
+    FROM clock;
 
-        -- Send the message
-        INSERT INTO message VALUES (maxMessage + 1, fromUser, text, toUser, NULL, time);
+    -- Send the message
+    INSERT INTO message VALUES (maxMessage + 1, fromUser, text, toUser, NULL, time);
 
-        RETURN true;
-    END;
+    RETURN true;
+END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
-RETURNS TABLE (msgID INT, messageBody VARCHAR(200), timeSent TIMESTAMP) AS
+    RETURNS TABLE
+            (
+                msgID       INT,
+                messageBody VARCHAR(200),
+                timeSent    TIMESTAMP
+            )
+AS
 $$
-    BEGIN
-        IF newMsg THEN
-            -- Get all messages sent to the user after they logged in
-            RETURN QUERY
-                SELECT M.msgid, M.messagebody, M.timesent
-                FROM messagerecipient AS MR NATURAL JOIN message AS M
-                WHERE MR.userid=toUser AND M.timesent > (SELECT lastlogin FROM profile WHERE userid = toUser)
-                ORDER BY M.timesent;
-        ELSE
-            RETURN QUERY
-                SELECT M.msgid, M.messagebody, M.timesent
-                FROM messagerecipient AS MR NATURAL JOIN message AS M
-                WHERE MR.userid=toUser
-                ORDER BY M.timesent;
-        end if;
-    end;
+BEGIN
+    IF newMsg THEN
+        -- Get all messages sent to the user after they logged in
+        RETURN QUERY
+            SELECT M.msgid, M.messagebody, M.timesent
+            FROM messagerecipient AS MR
+                     NATURAL JOIN message AS M
+            WHERE MR.userid = toUser
+              AND M.timesent > (SELECT lastlogin FROM profile WHERE userid = toUser)
+            ORDER BY M.timesent;
+    ELSE
+        RETURN QUERY
+            SELECT M.msgid, M.messagebody, M.timesent
+            FROM messagerecipient AS MR
+                     NATURAL JOIN message AS M
+            WHERE MR.userid = toUser
+            ORDER BY M.timesent;
+    end if;
+end;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION getFriends(uID INT)
-RETURNS TABLE (friendID INT, name VARCHAR(50)) AS
+    RETURNS TABLE
+            (
+                friendID INT,
+                name     VARCHAR(50)
+            )
+AS
 $$
-    BEGIN
-        -- Get all friends of the user and their respective information
-        RETURN QUERY
-        (
-        SELECT F.userid2, P.name
-        FROM friend F JOIN profile P ON F.userid2 = P.userid
-        WHERE F.userid1 = uID
-        )
+BEGIN
+    -- Get all friends of the user and their respective information
+    RETURN QUERY
+        (SELECT F.userid2, P.name
+         FROM friend F
+                  JOIN profile P ON F.userid2 = P.userid
+         WHERE F.userid1 = uID)
         UNION
-        (
-        SELECT F.userid1, P.name
-        FROM friend F JOIN profile P ON F.userid1 = P.userid
-        WHERE F.userid2 = uID
-        );
-    end;
+        (SELECT F.userid1, P.name
+         FROM friend F
+                  JOIN profile P ON F.userid1 = P.userid
+         WHERE F.userid2 = uID);
+end;
 $$ LANGUAGE plpgsql;
 
 -- Returns profile information of a specified friend
 CREATE OR REPLACE FUNCTION getFriendInfo(userID INT, friendID INT)
-RETURNS SETOF profile AS
+    RETURNS SETOF profile AS
 $$
-    DECLARE
-        rec_friend friend%ROWTYPE := NULL;
-    BEGIN
-        -- Validate that the user is actually a friend
-        SELECT * INTO rec_friend
-        FROM friend
-        WHERE (userid1=getFriendInfo.userID AND userid2=friendID) OR (userid2=getFriendInfo.userID AND userid1=friendID);
+DECLARE
+    rec_friend friend%ROWTYPE := NULL;
+BEGIN
+    -- Validate that the user is actually a friend
+    SELECT *
+    INTO rec_friend
+    FROM friend
+    WHERE (userid1 = getFriendInfo.userID AND userid2 = friendID)
+       OR (userid2 = getFriendInfo.userID AND userid1 = friendID);
 
-        -- Raise exception
-        IF rec_friend IS NULL THEN
-            RAISE EXCEPTION 'This user is not a friend of the logged in account' USING ERRCODE='00001';
-        end if;
+    -- Raise exception
+    IF rec_friend IS NULL THEN
+        RAISE EXCEPTION 'This user is not a friend of the logged in account' USING ERRCODE = '00001';
+    end if;
 
-        -- Safe to return result
-        RETURN QUERY SELECT * FROM profile P WHERE P.userid=getFriendInfo.friendID;
-    end;
+    -- Safe to return result
+    RETURN QUERY SELECT * FROM profile P WHERE P.userid = getFriendInfo.friendID;
+end;
 $$ LANGUAGE plpgsql;
 
 -- Gets top k messages
 CREATE OR REPLACE FUNCTION topMessages(uID INT, k INT, x INT)
-RETURNS TABLE (recipient INT, mCount BIGINT, rank BIGINT) AS
+    RETURNS TABLE
+            (
+                recipient INT,
+                mCount    BIGINT,
+                rank      BIGINT
+            )
+AS
 $$
-    DECLARE
-        startDate TIMESTAMP;
-        cur_time TIMESTAMP;
+DECLARE
+    startDate TIMESTAMP;
+    cur_time  TIMESTAMP;
 
-    BEGIN
-        -- Get the current time
-        SELECT pseudo_time INTO cur_time FROM clock;
+BEGIN
+    -- Get the current time
+    SELECT pseudo_time INTO cur_time FROM clock;
 
-        -- Calculate the furthest back date
-        SELECT cur_time - ((x * 30) || ' days')::INTERVAL INTO startDate;
+    -- Calculate the furthest back date
+    SELECT cur_time - ((x * 30) || ' days')::INTERVAL INTO startDate;
 
-        -- Yay large query
-        RETURN QUERY
-            SELECT rec, (coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0)) as msgCount, RANK() OVER (ORDER BY msgCount) AS rank
-            FROM (
-                    SELECT M.fromid AS rec, COUNT(M.msgid) AS msgCount
-                    FROM message M
-                    WHERE M.touserid=uID AND M.timesent BETWEEN startDate AND cur_time
-                    GROUP BY rec
-                ) CT NATURAL FULL OUTER JOIN (
-                    SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
-                    FROM message M
-                    WHERE M.fromid=uID AND M.timesent BETWEEN startDate AND cur_time AND M.touserid IS NOT NULL
-                    GROUP BY rec
-                ) CF
-            ORDER BY rank
+    -- Yay large query
+    RETURN QUERY
+        SELECT rec,
+               (coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0)) as msgCount,
+               RANK() OVER (ORDER BY msgCount)                       AS rank
+        FROM (SELECT M.fromid AS rec, COUNT(M.msgid) AS msgCount
+              FROM message M
+              WHERE M.touserid = uID
+                AND M.timesent BETWEEN startDate AND cur_time
+              GROUP BY rec) CT
+                 NATURAL FULL OUTER JOIN (SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
+                                          FROM message M
+                                          WHERE M.fromid = uID
+                                            AND M.timesent BETWEEN startDate AND cur_time
+                                            AND M.touserid IS NOT NULL
+                                          GROUP BY rec) CF
+        ORDER BY rank
             FETCH FIRST topMessages.k ROWS ONLY;
-    end;
+end;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION threeDegrees(startID INT, endID INT)
-RETURNS TABLE (fromID INT, secondID INT, thirdID INT, toID INT) AS
+    RETURNS TABLE
+            (
+                fromID   INT,
+                secondID INT,
+                thirdID  INT,
+                toID     INT
+            )
+AS
 $$
-    DECLARE
-        rec_user1 friend%ROWTYPE;
-        rec_user2 friend%ROWTYPE;
-        rec_user3 friend%ROWTYPE;
-        secondUser INT;
-        thirdUser INT;
+DECLARE
+    rec_user1  friend%ROWTYPE;
+    rec_user2  friend%ROWTYPE;
+    rec_user3  friend%ROWTYPE;
+    secondUser INT;
+    thirdUser  INT;
 
-    BEGIN
-        -- Check if they are directly friends with the person (1 hop solution)
-        IF (SELECT userid1 FROM friend WHERE (userid1=startID AND userid2=endID) OR (userid1=endID AND userid2=startID))
-            IS NOT NULL THEN
-            RETURN QUERY SELECT startID, -1, -1, endID;
-        end if;
+BEGIN
+    -- Check if they are directly friends with the person (1 hop solution)
+    IF (SELECT userid1
+        FROM friend
+        WHERE (userid1 = startID AND userid2 = endID) OR (userid1 = endID AND userid2 = startID)) IS NOT NULL THEN
+        RETURN QUERY SELECT startID, -1, -1, endID;
+    end if;
 
-        FOR rec_user1 IN SELECT * FROM friend WHERE userid1=startID OR userid2=startID
+    FOR rec_user1 IN SELECT * FROM friend WHERE userid1 = startID OR userid2 = startID
         LOOP
             -- First hop
-            IF rec_user1.userid1=startID THEN
+            IF rec_user1.userid1 = startID THEN
                 secondUser := rec_user1.userid2;
             ELSE
                 secondUser := rec_user1.userid1;
             end if;
 
             -- Check that we can get from first hop location to end user (2 hop solution)
-            SELECT * INTO rec_user2
+            SELECT *
+            INTO rec_user2
             FROM friend
-            WHERE (userid1=secondUser AND userid2=endID) OR (userid2=secondUser AND userid1=endID);
+            WHERE (userid1 = secondUser AND userid2 = endID)
+               OR (userid2 = secondUser AND userid1 = endID);
 
             IF rec_user2 IS NOT NULL THEN
                 RETURN QUERY SELECT startID, secondUser, -1, endID;
             end if;
 
             -- Now go through the friend's friends
-            FOR rec_user2 IN SELECT * FROM friend WHERE (userid1=secondUser OR userid2=secondUser) AND (userid1!=startID AND userid2!=startID)
-            LOOP
-                -- Second Hop
-                IF rec_user2.userid1=secondUser THEN
-                    thirdUser := rec_user2.userid2;
-                ELSE
-                    thirdUser := rec_user2.userid1;
-                end if;
+            FOR rec_user2 IN SELECT *
+                             FROM friend
+                             WHERE (userid1 = secondUser OR userid2 = secondUser)
+                               AND (userid1 != startID AND userid2 != startID)
+                LOOP
+                    -- Second Hop
+                    IF rec_user2.userid1 = secondUser THEN
+                        thirdUser := rec_user2.userid2;
+                    ELSE
+                        thirdUser := rec_user2.userid1;
+                    end if;
 
-                -- Now check if we can get from the second hop user to the end profile (3 hop solution
-                SELECT * INTO rec_user3
-                FROM friend
-                WHERE (userid1=thirdUser AND userid2=endID) OR (userid2=thirdUser AND userid1=endID);
+                    -- Now check if we can get from the second hop user to the end profile (3 hop solution
+                    SELECT *
+                    INTO rec_user3
+                    FROM friend
+                    WHERE (userid1 = thirdUser AND userid2 = endID)
+                       OR (userid2 = thirdUser AND userid1 = endID);
 
-                IF rec_user3 IS NOT NULL THEN
-                    RETURN QUERY SELECT startID, secondUser, thirdUser, endID;
-                end if;
-            end loop;
+                    IF rec_user3 IS NOT NULL THEN
+                        RETURN QUERY SELECT startID, secondUser, thirdUser, endID;
+                    end if;
+                end loop;
         end loop;
 
-        -- No solution within 3 hops
-        -- RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
-        RETURN QUERY SELECT -1, -1, -1, -1;
-        -- TODO: Ask brian about returning error
-    end;
+    -- No solution within 3 hops
+    -- RAISE EXCEPTION 'There is no three degree relation with this user' USING ERRCODE = '00001';
+    RETURN QUERY SELECT -1, -1, -1, -1;
+    -- TODO: Ask brian about returning error
+end;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION rankProfiles()
-RETURNS TABLE (uID INT, numFriends BIGINT, rank BIGINT) AS
+    RETURNS TABLE
+            (
+                uID        INT,
+                numFriends BIGINT,
+                rank       BIGINT
+            )
+AS
 $$
-    DECLARE
-        rec_profile profile%ROWTYPE;
-        rec_groupMember groupmember%ROWTYPE;
-        rec_Friendship RECORD;
-        rankCount INT;
-        friendsCount INT;
+DECLARE
+    rec_profile     profile%ROWTYPE;
+    rec_groupMember groupmember%ROWTYPE;
+    rec_Friendship  RECORD;
+    rankCount       INT;
+    friendsCount    INT;
 
-    BEGIN
-        -- Create temporary table to store results
-        CREATE TEMPORARY TABLE profileRanks (
-            uID INT PRIMARY KEY,
-            numFriends BIGINT
-        )
+BEGIN
+    -- Create temporary table to store results
+    CREATE TEMPORARY TABLE profileRanks
+    (
+        uID        INT PRIMARY KEY,
+        numFriends BIGINT
+    )
         ON COMMIT DROP;
 
-        -- TODO: Check if we should omit profile 0
-        -- Get network count for each user
-        FOR rec_profile IN SELECT * FROM profile
+    -- TODO: Check if we should omit profile 0
+    -- Get network count for each user
+    FOR rec_profile IN SELECT * FROM profile
         LOOP
             -- Delete/Re-declare the table
             DROP TABLE IF EXISTS friendships CASCADE;
-            CREATE TEMPORARY TABLE friendships (
+            CREATE TEMPORARY TABLE friendships
+            (
                 id INT PRIMARY KEY
             )
-            ON COMMIT DROP;
+                ON COMMIT DROP;
 
             -- Get total number of friends that user has and add those id's to the table
-            INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_profile.userid);
+            INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1 = rec_profile.userid);
 
             -- Go through all of the user's friends
-            FOR rec_Friendship IN SELECT * FROM getOneWayFriends() G WHERE G.userid1=rec_profile.userid
-            LOOP
-                -- Add unique new friends/profile ids to the temporary table
-                INSERT INTO friendships (SELECT userid2 FROM getOneWayFriends() WHERE userid1=rec_Friendship.userid2 AND userid2 NOT IN (SELECT * FROM friendships));
-
-                -- Now go through all of their friend's groups
-                FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_Friendship.userid2
+            FOR rec_Friendship IN SELECT * FROM getOneWayFriends() G WHERE G.userid1 = rec_profile.userid
                 LOOP
-                    -- Insert any unseen friends/group friends for this member to the temporary table
+                    -- Add unique new friends/profile ids to the temporary table
+                    INSERT INTO friendships (SELECT userid2
+                                             FROM getOneWayFriends()
+                                             WHERE userid1 = rec_Friendship.userid2
+                                               AND userid2 NOT IN (SELECT * FROM friendships));
+
+                    -- Now go through all of their friend's groups
+                    FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid = rec_Friendship.userid2
+                        LOOP
+                            -- Insert any unseen friends/group friends for this member to the temporary table
+                            INSERT INTO friendships
+                                (SELECT G.userid
+                                 FROM groupmember G
+                                 WHERE G.gid = rec_groupMember.gid
+                                   AND G.userid != rec_Friendship.userid2
+                                   AND G.userid NOT IN (SELECT * FROM friendships));
+                        end loop;
+                end loop;
+
+            -- Go through all of the groups the original user is in
+            FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid = rec_profile.userid
+                LOOP
+                    -- Insert unique group friends to the temporary table tracking the network
                     INSERT INTO friendships
                         (SELECT G.userid
                          FROM groupmember G
-                         WHERE G.gid=rec_groupMember.gid
-                           AND G.userid!=rec_Friendship.userid2
+                         WHERE G.gid = rec_groupMember.gid
+                           AND G.userid != rec_profile.userid
                            AND G.userid NOT IN (SELECT * FROM friendships));
                 end loop;
-            end loop;
-
-            -- Go through all of the groups the original user is in
-            FOR rec_groupMember IN SELECT * FROM groupmember WHERE userid=rec_profile.userid
-            LOOP
-                -- Insert unique group friends to the temporary table tracking the network
-                INSERT INTO friendships
-                    (SELECT G.userid
-                     FROM groupmember G
-                     WHERE G.gid=rec_groupMember.gid
-                        AND G.userid!=rec_profile.userid
-                        AND G.userid NOT IN (SELECT * FROM friendships));
-            end loop;
 
             -- Now insert the count of the temporary table to the profile ranks temporary table
             INSERT INTO profileRanks VALUES (rec_profile.userid, (SELECT coalesce(COUNT(*), 0) FROM friendships));
         end loop;
 
-        -- Return the sorted table query
-        RETURN QUERY
-            SELECT PR.uID, PR.numFriends, RANK() OVER (ORDER BY PR.numFriends DESC) AS rank
-            FROM profileRanks PR
-            ORDER BY rank;
-    end;
+    -- Return the sorted table query
+    RETURN QUERY
+        SELECT PR.uID, PR.numFriends, RANK() OVER (ORDER BY PR.numFriends DESC) AS rank
+        FROM profileRanks PR
+        ORDER BY rank;
+end;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION getOneWayFriends()
-RETURNS TABLE (userid1 INT, userid2 INT) AS
+    RETURNS TABLE
+            (
+                userid1 INT,
+                userid2 INT
+            )
+AS
 $$
-    BEGIN
-        -- This is as it sounds
-        RETURN QUERY SELECT f1.userid2 AS userid1, f1.userid1 AS userid2 FROM friend f1
-                     UNION
-                     SELECT f2.userid1, f2.userid2 FROM friend f2;
-    end;
+BEGIN
+    -- This is as it sounds
+    RETURN QUERY SELECT f1.userid2 AS userid1, f1.userid1 AS userid2
+                 FROM friend f1
+                 UNION
+                 SELECT f2.userid1, f2.userid2
+                 FROM friend f2;
+end;
 $$ LANGUAGE plpgsql;
