@@ -425,6 +425,7 @@ public class Driver {
     private static void testTopMessages() {
         // Assumptions: sendMessagetoUser/Group has been run before
         // 
+        System.out.println("Test Top Messages Not Implemented");
     }
 
     private static void testRankProfiles() {
@@ -502,6 +503,7 @@ public class Driver {
         // log into admin
 
         // show that admin has no groups
+        System.out.println("Test Confirm Group Membership not Implemented");
     }
 
     private static void testInitiateAddingGroup() {
@@ -833,7 +835,6 @@ public class Driver {
         beSocial.logout();
     }
 
-    // Nick
     private static void testInitiateFriendship() {
         // SEND THE FRIEND REQUEST TO USER 2 FROM USER 4
 
@@ -963,12 +964,32 @@ public class Driver {
             Statement st = conn.createStatement();
             String query = "DELETE FROM profile WHERE userID != 0;";
             st.executeUpdate(query);
+            st.close();
         } catch (SQLException e) {
             System.out.println("Failed to remove the profiles from the relation");
             return;
         }
 
         // Show that profile table is empty
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM profile WHERE userID;";
+            ResultSet rs = st.executeQuery(query);
+            System.out.println("Displaying profile table at the start of createProfile Method");
+            System.out.println("--------------------------------------------------------------");
+            while (rs.next()) {
+                int userID = rs.getInt("userID");
+                String userName = rs.getString("name");
+                String userPassword = rs.getString("password");
+                String userEmail = rs.getString("email");
+                String userDOB = rs.getString("date_of_birth");
+                Timestamp lastLogin = rs.getTimestamp("lastlogin");
+                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     " + userDOB + "     " + lastLogin.toString());
+            }
+            System.out.println("--------------------------------------------------------------");
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Try and create profiles for each user
         for (int i = 0; i < userList.length; i++) {
