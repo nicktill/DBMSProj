@@ -217,7 +217,10 @@ public class BeSocial {
                     beSocial.topMessages();
                         break;
                     case 19:
-                    beSocial.threeDegrees();
+                        System.out.println("Enter the user ID of the user you want to find a relationship with:");
+                        int toID = sc.nextInt();
+                        sc.nextLine();
+                        beSocial.threeDegrees(toID);
                         break;
                     case 20:
                     beSocial.logout();
@@ -1556,10 +1559,7 @@ public class BeSocial {
     // users.
     // *IMPORTANT NOTE* This query should be written using plpgsql and should only
     // use java for interfacing. *IMPORTANT NOTE*
-    public void threeDegrees() {
-        System.out.println("Enter the user ID of the user you want to find a relationship with:");
-        int toID = sc.nextInt();
-        sc.nextLine();
+    public void threeDegrees(int toID) {
 
         // Now call the function
         try {

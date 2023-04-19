@@ -1,4 +1,6 @@
 import java.sql.Timestamp;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -12,6 +14,7 @@ import java.util.Scanner;
  * 1. Should we manually create users so that is deterministic
  * 2. Should we show that some methods do not work when logged in/out?
  * 3. Should we assume an empty database? Or can we assume at least admin is in there
+ * 4. For three degrees, will it be okay to just insert friendships rather than initate and add them?
  */
 
 /**
@@ -195,8 +198,10 @@ public class Driver {
         }
     }
 
-    /** Test Exit Method
-     * After calling the exit method, beSocial should close the scanner and connection to the database
+    /**
+     * Test Exit Method
+     * After calling the exit method, beSocial should close the scanner and
+     * connection to the database
      */
     private static void testExit() {
         // Call the exit function
@@ -234,7 +239,8 @@ public class Driver {
             Date dob = rs.getDate("date_of_birth");
             Timestamp lastLogin = rs.getTimestamp("lastlogin");
 
-            profileRowBefore = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " " + lastLogin.toString();
+            profileRowBefore = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " "
+                    + lastLogin.toString();
 
             st.close();
         } catch (SQLException e) {
@@ -290,7 +296,8 @@ public class Driver {
             Date dob = rs.getDate("date_of_birth");
             Timestamp lastLogin = rs.getTimestamp("lastlogin");
 
-            profileRowAfter = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " " + lastLogin.toString();
+            profileRowAfter = userID + " " + name + " " + email + " " + password + " " + dob.toString() + " "
+                    + lastLogin.toString();
 
             st.close();
         } catch (SQLException e) {
@@ -328,7 +335,93 @@ public class Driver {
     }
 
     private static void testThreeDegrees() {
-        System.out.println("Test Three Degrees Not Implemented");
+        // Clear friendship table
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM friend;";
+            st.executeUpdate(query);
+        } catch (SQLException e) {
+            System.out.println("Failed to remove the friends from the relation");
+            return;
+        }
+
+        System.out.println("Cleared friend table");
+
+        // Add Friendship: Steven Jarmell - Kenny Pickett
+        // Add Friendship: Kenny Pickett - George Pickens
+        // Add Friendship: George Pickens - Taylor Swift
+        // Kendrick Has No Friends :(
+        try {
+            Statement st = conn.createStatement();
+            String query = "INSERT INTO friend VALUES(1, 2, '2023-04-19');INSERT INTO friend VALUES(2, 5, '2023-04-19');INSERT INTO friend VALUES(5, 4, '2023-04-19');";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
+        }
+
+        System.out.println("Friendships Added");
+
+        // Log in as Steven Jarmell
+        beSocial.login("Steven Jarmell", "1234");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        // Test between logged in user and one of their immediate friends
+        beSocial.threeDegrees(2);
+
+        // Test between logged in user and one of their friend's friends
+        beSocial.threeDegrees(5);
+
+        // Test between logged in user and one of their friends' friend's friends
+        beSocial.threeDegrees(4);
+
+        // Test between logged in user and a user that has no friends
+        beSocial.threeDegrees(3);
+
+        System.out.flush();
+        System.setOut(old);
+
+        String[] outputs = baos.toString().split("\r?\n|\r");
+
+        String expected1 = "1 --> 2";
+        String expected2 = "1 --> 2 --> 5";
+        String expected3 = "1 --> 2 --> 5 --> 4";
+        String expected4 = "There is no three degree relation with this user.";
+
+        System.out.println("\nFirst Three Degrees:");
+        System.out.println("Expected: " + expected1);
+        System.out.println("Received: " + outputs[0]);
+        boolean result1 = expected1.equals(outputs[0]);
+        System.out.println("Passed: " + result1);
+
+        System.out.println("\nSecond Three Degrees:");
+        System.out.println("Expected: " + expected2);
+        System.out.println("Received: " + outputs[1]);
+        boolean result2 = expected2.equals(outputs[1]);
+        System.out.println("Passed: " + result2);
+
+        System.out.println("\nThird Three Degrees:");
+        System.out.println("Expected: " + expected3);
+        System.out.println("Received: " + outputs[2]);
+        boolean result3 = expected3.equals(outputs[2]);
+        System.out.println("Passed: " + result3);
+
+        System.out.println("\nFourth Three Degrees:");
+        System.out.println("Expected: " + expected4);
+        System.out.println("Received: " + outputs[3]);
+        boolean result4 = expected4.equals(outputs[3]);
+        System.out.println("Passed: " + result4);
+
+        if (result1 && result2 && result3 && result4) {
+            System.out.println("\nAll tests passed for Three Degrees");
+        } else {
+            System.out.println("\nThree Degrees Test Failed");
+        }
     }
 
     private static void testTopMessages() {
@@ -422,7 +515,7 @@ public class Driver {
 
         // Display the content of the profiles table after adding the profiles
         try {
-            String query = "SELECT name, password, email, date_of_birth FROM profile where userID != 0;";
+            String query = "SELECT * FROM profile where userID != 0;";
             Statement st = conn.createStatement();
             ResultSet rs = st.executeQuery(query);
 
@@ -430,12 +523,15 @@ public class Driver {
             System.out.println("----------------------");
             int count = 0;
             while (rs.next()) {
+
+                int userID = rs.getInt("userID");
                 String userName = rs.getString("name");
                 String userPassword = rs.getString("password");
                 String userEmail = rs.getString("email");
                 String userDOB = rs.getString("date_of_birth");
+                Timestamp lastLogin = rs.getTimestamp("lastlogin");
 
-                System.out.println(userName + "     " + userPassword + "        " + userEmail + "       " + userDOB);
+                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     " + userDOB + "     " + lastLogin.toString());
 
                 if (!userList[count].name.equals(userName) || !userList[count].password.equals(userPassword)
                         || !userList[count].email.equals(userEmail) || !userList[count].dob.equals(userDOB)) {
