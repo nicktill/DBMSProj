@@ -843,7 +843,6 @@ public class BeSocial {
             int k = allUsersList.get(i).get(0);
             int l = allUsersList.get(i).get(1);
             for (int j = 0; j < chosenUsersList.size(); j++) {
-                //System.out.println("Comparing (" + k + ", " + " " + l + ") and " + "(" + chosenUsersList.get(j).get(0)  + ", " + " " + chosenUsersList.get(j).get(1) + ")");
                 if ((k == chosenUsersList.get(j).get(0)) && (l == chosenUsersList.get(j).get(1))){
                     found = true;
                 }
@@ -857,17 +856,40 @@ public class BeSocial {
         // There is a trigger to do this automatically
         for (int i = 0; i < notChosenUsersList.size(); i++) {
             try {
+                conn.setAutoCommit(false);
+                conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+
                 Statement st = conn.createStatement();
                 String dropUserQuery = String.format("DELETE FROM groupMember WHERE gID = %d AND userID = %d;", notChosenUsersList.get(i).get(0), notChosenUsersList.get(i).get(1));
                 int rs = st.executeUpdate(dropUserQuery);
+                
+                conn.commit();
+
                 if (rs == 1) {
                     System.out.printf("Successfully removed %d from pendingGroupMember\n", notChosenUsersList.get(i).get(1));
                 } else {
                     System.out.println("Did not remove from pendingGroupMember");
                 }
             } catch (SQLException e) {
-                // code to handle exception here
-                printErrors(e);
+                // If a SQLException occurs, try to roll back the transaction and if that fails, end the program
+                System.out.println("An error occurred removing a member from pendingGroup");
+                System.out.println(e);
+                try {
+                    conn.rollback();
+                } catch (SQLException e2) {
+                    System.out.println("An error occurred while rolling back the transaction");
+                    endProgram();
+                }
+            } finally {
+                // No matter what, we need to set Auto Commit back to true
+                try {
+                    conn.setAutoCommit(true);
+                    conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+                } catch (SQLException e) {
+                    // If another error occurs, just tank the program
+                    System.out.println("Unexpected error occurred while setting auto commit back to false");
+                    endProgram();
+                }
             }
         }
 
@@ -876,9 +898,15 @@ public class BeSocial {
         // Requests not selected are then removed from pendingGroupMember
         for (int i = 0; i < chosenUsersList.size(); i++) {
             try {
+                conn.setAutoCommit(false);
+                conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+
                 Statement st = conn.createStatement();
                 String addUserQuery = String.format("INSERT INTO groupMember VALUES(%d, %d, 'member', NULL)", chosenUsersList.get(i).get(0), chosenUsersList.get(i).get(1));
                 int rs = st.executeUpdate(addUserQuery);
+
+                conn.commit();
+
                 if (rs == 1) {
                     System.out.printf("Successfully added %d as a group member\n", chosenUsersList.get(i).get(1));
                 } else {
@@ -906,6 +934,23 @@ public class BeSocial {
                     System.out.println("Cannot accept any more people into group " + chosenUsersList.get(i).get(0));
                 } else {
                     printErrors(e);
+                }
+
+                try {
+                    conn.rollback();
+                } catch (SQLException e2) {
+                    System.out.println("An error occurred while rolling back the transaction");
+                    endProgram();
+                }
+            } finally {
+                // No matter what, we need to set Auto Commit back to true
+                try {
+                    conn.setAutoCommit(true);
+                    conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+                } catch (SQLException e) {
+                    // If another error occurs, just tank the program
+                    System.out.println("Unexpected error occurred while setting auto commit back to false");
+                    endProgram();
                 }
             }
         }
