@@ -35,6 +35,10 @@ public class BeSocial {
         return this.isLoggedIn;
     }
 
+    public boolean isProgramRunning() {
+        return this.beSocial == null;
+    }
+
     public BeSocial(String databaseUsername, String databasePassword) {
         // Try and connect to the database
         try {
@@ -49,7 +53,7 @@ public class BeSocial {
             System.out.println(String.format(
                     "Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
             
-            if (sc != null) sc.close();
+            if (sc == null) sc.close();
             System.exit(0);
         }
     }
@@ -86,6 +90,7 @@ public class BeSocial {
             int userInput = -1;
             isLoggedIn = false;
             while (true) {
+                if (beSocial == null) break;
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
@@ -228,7 +233,7 @@ public class BeSocial {
         }
 
         System.out.println("Thank you for using BeSocial");
-        beSocial.endProgram();
+        if (beSocial != null) beSocial.endProgram();
     }
 
     /**
@@ -244,6 +249,7 @@ public class BeSocial {
             System.out.println("Error closing DB connection");
         }
         if (sc != null) sc.close();
+        beSocial = null;
     }
 
     // TODO CASE 1

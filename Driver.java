@@ -202,7 +202,7 @@ public class Driver {
         // Call the exit function
         beSocial.exit();
 
-        if (beSocial == null) {
+        if (beSocial.isProgramRunning()) {
             System.out.println("Test Exit Passed");
         } else {
             System.out.println("Test Exit Failed");
