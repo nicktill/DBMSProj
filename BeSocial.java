@@ -736,7 +736,7 @@ public class BeSocial {
             } else if (message.contains("already exists")) {
                 System.out.println("You already tried to join this group");
             } else {
-                printErrors(e);
+                System.out.println("You are already in the group");
             }
         }
     }
