@@ -1442,7 +1442,7 @@ public class BeSocial {
     // * In the event that there are no groups in the system, a message No Groups to
     // Rank should
     // * be displayed to the user.
-    public static void rankGroups() {
+    public void rankGroups() {
         String rankGroupsStatement = "SELECT g.gID, g.name, COALESCE(COUNT(gm.userID), 0) AS member_count " +
                 "FROM groupInfo g " +
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
