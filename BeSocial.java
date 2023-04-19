@@ -575,7 +575,7 @@ public class BeSocial {
             removeDeclinedReqsStatement.setInt(1, userID);
             removeDeclinedReqsStatement.executeUpdate();
             removeDeclinedReqsStatement.close();
-            System.out.print("All other requeste deleted, leaving menu...\n");
+            System.out.print("All unanswered pending requests being deleted...\n");
             return;
 
         } catch (SQLException e) {
@@ -618,7 +618,7 @@ public class BeSocial {
                 addPendingFriendStatement.executeUpdate();
             } else {
                 // ADD Friend with custom request text
-                String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, reqText) VALUES(?, ?, ?, ?);";
+                String addPendingFriendWithReqText = "INSERT INTO friend (userID1, userID2, JDate, requestText) VALUES(?, ?, ?, ?);";
                 PreparedStatement addPendingFriendStatement = conn.prepareStatement(addPendingFriendWithReqText);
                 addPendingFriendStatement.setInt(1, userID1);
                 addPendingFriendStatement.setInt(2, userID2);
