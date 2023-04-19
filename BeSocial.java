@@ -1440,13 +1440,8 @@ public class BeSocial {
     // * In the event that there are no groups in the system, a message No Groups to
     // Rank should
     // * be displayed to the user.
-    public void rankGroups() {
-        // * USE LEFT JOIN instead of a natural join (INNER JOIN) in this case is very
-        // important
-        // * it will ensure that all groups from the groupInfo table are included in the
-        // * result, even if they have no members in the groupMember table. (i.e empty
-        // groups)
-        String rankGroupsStatement = "SELECT g.gID, g.name, COUNT(gm.userID) AS member_count " +
+    public static void rankGroups() {
+        String rankGroupsStatement = "SELECT g.gID, g.name, COALESCE(COUNT(gm.userID), 0) AS member_count " +
                 "FROM groupInfo g " +
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
                 "GROUP BY g.gID, g.name " +
@@ -1455,20 +1450,27 @@ public class BeSocial {
             PreparedStatement rankGroups = conn.prepareStatement(rankGroupsStatement);
             ResultSet rs = rankGroups.executeQuery();
             System.out.println(String.format("%-10s %-30s %-20s", "Group ID", "Group Name", "Number of Members"));
-            if (!rs.next()) {
+    
+            boolean hasResults = rs.next();
+    
+            if (!hasResults) {
                 System.out.println("No Groups to Rank");
             }
-            while (rs.next()) {
+    
+            while (hasResults) {
                 System.out.println(String.format("%-10s %-30s %-20s",
                         rs.getString("gID"),
                         rs.getString("name"),
                         rs.getString("member_count")));
+    
+                hasResults = rs.next();
             }
-
+    
         } catch (SQLException e) {
             System.out.println("Error: " + e.getMessage());
         }
     }
+    
 
     // TODO CASE 17
     // * This task should produce a ranked list of user profiles based on the number
