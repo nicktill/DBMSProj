@@ -11,16 +11,12 @@ import java.util.Properties;
 import java.util.Scanner;
 
 /** Questions for TA
- * 1. Should we manually create users so that is deterministic
- * 2. Should we show that some methods do not work when logged in/out?
- * 3. Should we assume an empty database? Or can we assume at least admin is in there
- * 4. For three degrees, will it be okay to just insert friendships rather than initate and add them?
+ * 1. For three degrees, will it be okay to just insert friendships rather than initate and add them?
  */
 
 /**
  * The driver program needs to call all of the above functions and display the
- * content of the
- * affected rows of the affected tables after each cal
+ * content of the affected rows of the affected tables after each call
  */
 public class Driver {
 
@@ -87,11 +83,6 @@ public class Driver {
         System.out.println("Press enter to test createProfile");
         sc.nextLine();
         testCreateProfile();
-
-        // Test for method `dropProfile` | Task 2
-        System.out.println("Press enter to test dropProfile");
-        sc.nextLine();
-        testDropProfile();
 
         // Test for method `login` | Task 3
         System.out.println("Press enter to test login");
@@ -182,6 +173,11 @@ public class Driver {
         System.out.println("Press enter to test logout");
         sc.nextLine();
         testLogout();
+
+        // Test for method `dropProfile` | Task 2
+        System.out.println("Press enter to test dropProfile");
+        sc.nextLine();
+        testDropProfile();
 
         // Test for method `exit` | Task 21
         System.out.println("Press enter to test exit");
@@ -422,6 +418,8 @@ public class Driver {
         } else {
             System.out.println("\nThree Degrees Test Failed");
         }
+
+        beSocial.logout();
     }
 
     private static void testTopMessages() {
