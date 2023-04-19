@@ -1,3 +1,4 @@
+import java.sql.Timestamp;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -208,7 +209,107 @@ public class Driver {
     }
 
     private static void testLogout() {
-        System.out.println("Test Logout Not Implemented");
+
+        // Get the display before the user logs in
+        System.out.println("Menu Before User Logs In:");
+        beSocial.displayMenu(beSocial.getIsLoggedIn());
+
+        System.out.println();
+        // Log in a user
+        beSocial.login("admin", "admin");
+
+        // Get the user's timestamp when they log in
+        Timestamp logInTimestamp = null;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT lastlogin FROM profile WHERE userID=0;";
+            ResultSet rs = st.executeQuery(query);
+
+            rs.next();
+            logInTimestamp = rs.getTimestamp("lastlogin");
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        if (logInTimestamp == null) {
+            System.out.println("Error getting lastlogin timestamp in test logout");
+        } else {
+            System.out.println("\nTime In Profile Table When Logged In: " + logInTimestamp);
+        }
+
+        // Get the display when logged in
+        System.out.println("\nMenu After User Logs In:");
+        beSocial.displayMenu(beSocial.getIsLoggedIn());
+
+        // Change the timestamp in the clock
+        try {
+            Statement st = conn.createStatement();
+            String updateTimeStampQuery = "UPDATE Clock SET pseudo_time = '2022-01-01 01:00:00';";
+            int rs = st.executeUpdate(updateTimeStampQuery);
+
+            if (rs != 1) {
+                System.out.println("Failed to update clock");
+            } else {
+                System.out.println("Updated the clock's value");
+            }
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Log the user out
+        beSocial.logout();
+
+        // Get the display again
+        System.out.println("\nMenu After User Logs Out:");
+        beSocial.displayMenu(beSocial.getIsLoggedIn());
+
+        // Get the user's timestamp and make sure it changed to the clock timestamp
+        Timestamp logOutTimeStamp = null;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT lastlogin FROM profile WHERE userID=0;";
+            ResultSet rs = st.executeQuery(query);
+
+            rs.next();
+            logOutTimeStamp = rs.getTimestamp("lastlogin");
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        if (logOutTimeStamp == null) {
+            System.out.println("Error getting lastlogin timestamp in test logout");
+        } else {
+            System.out.println("\nTime In Profile Table When Logged In: " + logOutTimeStamp);
+        }
+
+        System.out.println("\nSetting Clock back to default");
+        try {
+            Statement st = conn.createStatement();
+            String updateTimeStampQuery = "UPDATE Clock SET pseudo_time = '2022-01-01 00:00:00';";
+            int rs = st.executeUpdate(updateTimeStampQuery);
+
+            if (rs != 1) {
+                System.out.println("Failed to return clock to default");
+            } else {
+                System.out.println("Updated the clock's value back to default");
+            }
+
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        if (logInTimestamp.equals(logOutTimeStamp)) {
+            System.out.println("\nTest Logout Failed");
+        } else {
+            System.out.println("\nTest Logout Passed");
+        }
     }
 
     private static void testThreeDegrees() {

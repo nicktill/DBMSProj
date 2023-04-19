@@ -31,6 +31,10 @@ public class BeSocial {
     private static final int ADMIN_USER_ID = 0;
     private static BeSocial beSocial;
 
+    public boolean getIsLoggedIn() {
+        return this.isLoggedIn;
+    }
+
     public BeSocial(String databaseUsername, String databasePassword) {
         // Try and connect to the database
         try {
