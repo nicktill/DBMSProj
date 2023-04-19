@@ -31,6 +31,14 @@ public class BeSocial {
     private static final int ADMIN_USER_ID = 0;
     private static BeSocial beSocial;
 
+    public boolean getIsLoggedIn() {
+        return this.isLoggedIn;
+    }
+
+    public boolean isProgramRunning() {
+        return this.beSocial == null;
+    }
+
     public BeSocial(String databaseUsername, String databasePassword) {
         // Try and connect to the database
         try {
@@ -44,7 +52,8 @@ public class BeSocial {
         } catch (Exception e) {
             System.out.println(String.format(
                     "Error Of Type: '%s' Occurred When Connecting to Database.\nPlease re-run program.", e.getClass()));
-            sc.close();
+            
+            if (sc == null) sc.close();
             System.exit(0);
         }
     }
@@ -64,7 +73,7 @@ public class BeSocial {
             databasePassword = sc.nextLine();
         } catch (Exception e) {
             System.out.println("Error retrieving username and password");
-            sc.close();
+            if (sc != null) sc.close();
             System.exit(0);
         }
 
@@ -81,6 +90,7 @@ public class BeSocial {
             int userInput = -1;
             isLoggedIn = false;
             while (true) {
+                if (beSocial == null) break;
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
@@ -213,7 +223,10 @@ public class BeSocial {
                     beSocial.topMessages();
                         break;
                     case 19:
-                    beSocial.threeDegrees();
+                        System.out.println("Enter the user ID of the user you want to find a relationship with:");
+                        int toID = sc.nextInt();
+                        sc.nextLine();
+                        beSocial.threeDegrees(toID);
                         break;
                     case 20:
                     beSocial.logout();
@@ -229,7 +242,7 @@ public class BeSocial {
         }
 
         System.out.println("Thank you for using BeSocial");
-        beSocial.endProgram();
+        if (beSocial != null) beSocial.endProgram();
     }
 
     /**
@@ -244,8 +257,8 @@ public class BeSocial {
         } catch (SQLException e) {
             System.out.println("Error closing DB connection");
         }
-        sc.close();
-        System.exit(0);
+        if (sc != null) sc.close();
+        beSocial = null;
     }
 
     // TODO CASE 1
@@ -754,8 +767,10 @@ public class BeSocial {
                 System.out.println("The group you tried to join does not exist");
             } else if (message.contains("already exists")) {
                 System.out.println("You already tried to join this group");
+            } else if (message.contains("User_in_group")) {
+                System.out.println("You are already in this group");
             } else {
-                printErrors(e);
+                System.out.println(message);
             }
         }
     }
@@ -1459,7 +1474,7 @@ public class BeSocial {
     // * In the event that there are no groups in the system, a message No Groups to
     // Rank should
     // * be displayed to the user.
-    public static void rankGroups() {
+    public void rankGroups() {
         String rankGroupsStatement = "SELECT g.gID, g.name, COALESCE(COUNT(gm.userID), 0) AS member_count " +
                 "FROM groupInfo g " +
                 "LEFT JOIN groupMember gm ON g.gID = gm.gID " +
@@ -1563,10 +1578,7 @@ public class BeSocial {
     // users.
     // *IMPORTANT NOTE* This query should be written using plpgsql and should only
     // use java for interfacing. *IMPORTANT NOTE*
-    public void threeDegrees() {
-        System.out.println("Enter the user ID of the user you want to find a relationship with:");
-        int toID = sc.nextInt();
-        sc.nextLine();
+    public void threeDegrees(int toID) {
 
         // Now call the function
         try {
