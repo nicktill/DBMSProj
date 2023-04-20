@@ -2183,13 +2183,59 @@ public class Driver {
         // Do comparison is old == new, if false, login worked if true login didnt work
     }
 
-    // TODO
     private static void testDropProfile() {
+        // Make sure only the admin profile can run it
         beSocial.login(user1.name, user1.password);
-        beSocial.dropProfile();
+        beSocial.dropProfile(user5.email);
         System.out.println("Previous Line Should Say: This operation can only be performed by an admin");
+
+        // Log in to admin
         beSocial.logout();
-        System.out.println("Test Drop Profile Not Implemented");
+        beSocial.login("admin", "admin");
+
+        // Get current profiles table
+        System.out.println("Profiles before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM profile;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int userID = rs.getInt(1);
+                String name = rs.getString(2);
+                String email = rs.getString(3);
+                String password = rs.getString(4);
+                Date date = rs.getDate(5);
+                Timestamp ts = rs.getTimestamp(6);
+                System.out.println(userID + ", " + name + ", " + email + ", " + password + ", " + date.toString() + ", " + ts.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for profiles");
+        }
+
+        System.out.println("Removing 2 users...\n");
+
+        beSocial.dropProfile(user2.email);
+        beSocial.dropProfile(user5.email);
+
+        System.out.println("Profiles after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM profile;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int userID = rs.getInt(1);
+                String name = rs.getString(2);
+                String email = rs.getString(3);
+                String password = rs.getString(4);
+                Date date = rs.getDate(5);
+                Timestamp ts = rs.getTimestamp(6);
+                System.out.println(userID + ", " + name + ", " + email + ", " + password + ", " + date.toString() + ", " + ts.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for profiles");
+        } 
     }
 
     private static void testCreateProfile() {

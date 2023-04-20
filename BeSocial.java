@@ -171,7 +171,7 @@ public class BeSocial {
                         beSocial.createProfile(name, email, password, dob);
                         break;
                     case 2:
-                        beSocial.dropProfile();
+                        beSocial.dropProfile(null);
                         break;
                     case 3:
                         String username;
@@ -437,15 +437,20 @@ public class BeSocial {
     // * delete any message whose sender and all receivers are deleted. Attention
     // should be paid to
     // * handling integrity constraints.
-    public void dropProfile() {
+    public void dropProfile(String dropEmail) {
         if (userID != ADMIN_USER_ID) {
             System.out.println("This operation can only be performed by an admin");
             return;
         }
         // still needs to be checked by TA
         String email;
-        System.out.print("Enter the email to drop profile for: ");
-        email = sc.nextLine();
+        if (!isDriverMode) {
+            System.out.print("Enter the email to drop profile for: ");
+            email = sc.nextLine();
+        } else {
+            email = dropEmail;
+        }
+        
 
         try {
             // call delete from profile on specified email, cascade (to move other
