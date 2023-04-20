@@ -1364,7 +1364,6 @@ public class BeSocial {
     // the groupMember
     // * relation.
     public void sendMessageToGroup(int groupID, String driverMessage) {
-
         // Check if the user is in the group
         try {
             PreparedStatement st = conn.prepareStatement("SELECT * from groupMember WHERE userID = ? AND gID = ?;");
@@ -1654,7 +1653,7 @@ public class BeSocial {
     // considered in this
     // * function.
     public void topMessages(int x, int k) {
-
+        
         try {
             PreparedStatement p = conn.prepareStatement("SELECT * FROM topMessages(?, ?, ?);");
             p.setInt(1, userID);
@@ -1667,8 +1666,6 @@ public class BeSocial {
                         rs.getInt("recipient"),
                         rs.getLong("mCount")));
                 remaining--;
-                // TODO: Clarify what how ties should be handled
-                // ! CAN BE BOTH
             }
 
             if (remaining == k) {
@@ -1687,7 +1684,6 @@ public class BeSocial {
     // *IMPORTANT NOTE* This query should be written using plpgsql and should only
     // use java for interfacing. *IMPORTANT NOTE*
     public void threeDegrees(int toID) {
-
         // Now call the function
         try {
             PreparedStatement s = conn.prepareStatement("SELECT * FROM threeDegrees(?, ?);");
