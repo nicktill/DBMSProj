@@ -490,9 +490,23 @@ public class Driver {
         System.out.println("Test Send Message To Group Not Implemented");
     }
 
-    // TODO
     private static void testSendMessageToUser() {
-        System.out.println("Test Send Message To User Not Implemented");
+        // Log in to a user
+        beSocial.logout();
+        beSocial.login("admin", "admin");
+
+        // Send a message to another user
+        // TODO: Make sure they are a friend
+        System.out.println("Test send a message to a friend");
+        beSocial.sendMessageToUser("Hello, this is a test message.", 2);
+
+        // TODO: Show that the row has changed
+        // Access the database to show that the message was successfully sent
+        int newMessageID = -1;
+
+        // Send message to a user that does not exist/bad send
+        System.out.println("Test send a message that is not allowed.\nUser sends a message to themselves");
+        beSocial.sendMessageToUser("Hello, this is a test message.", 0);
     }
 
     // TODO

@@ -230,7 +230,7 @@ public class BeSocial {
                         beSocial.searchForProfile();
                         break;
                     case 11:
-                        beSocial.sendMessageToUser();
+                        beSocial.sendMessageToUser(null, -1);
                         break;
                     case 12:
                         beSocial.sendMessageToGroup();
@@ -1193,7 +1193,7 @@ public class BeSocial {
     // * and use a trigger to add a corresponding entry into the messageRecipient
     // relation. The user
     // * should lastly be shown success or failure feedback.
-    public void sendMessageToUser() {
+    public void sendMessageToUser(String msg, int destination) {
         // Prompt for friend to send message to
         try {
             Statement stmt = conn.createStatement();
@@ -1217,10 +1217,15 @@ public class BeSocial {
         }
 
         // Get friend to send message to
-        System.out.print("Enter the userID of the friend you would like to message: ");
-        int fID = sc.nextInt();
-        sc.nextLine(); // Clear the buffer
-
+        int fID;
+        if (!isDriverMode) {
+            System.out.print("Enter the userID of the friend you would like to message: ");
+            fID = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
+        } else {
+            fID = destination;
+        }
+        
         // Get name of the friend
         String friendName = "";
         try {
@@ -1242,19 +1247,26 @@ public class BeSocial {
             return;
         }
 
-        // Get the message to send
-        System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName
-                + ", ending with 'END' on a new line:");
-        StringBuilder sb = new StringBuilder();
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            if (line.equals("END")) {
-                break;
+        String message;
+        if (!isDriverMode) {
+            // Get the message to send
+            System.out.println("Enter the message you want to send (Max 200 Words) to " + friendName
+                    + ", ending with 'END' on a new line:");
+            StringBuilder sb = new StringBuilder();
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                if (line.equals("END")) {
+                    break;
+                }
+                sb.append(line).append("\n");
             }
-            sb.append(line).append("\n");
+            message = sb.toString();
+        } else {
+            message = msg;
         }
+        
 
-        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
+        message = message.substring(0, Math.min(message.length(), 200));
 
         // Send the message
         try {
