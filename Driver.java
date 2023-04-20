@@ -1281,11 +1281,11 @@ public class Driver {
         // ! ACTUAL OUTPUT
         System.out.println("Actual Output: \n\n");
         // Print the userID of beSocial, should be -1
-        System.out.println("User ID Before Login: " + beSocial.userID);
+        System.out.println("User ID Before Login: " + BeSocial.userID);
         // Log in user
         beSocial.login(user1.name, user1.password);
         // Print the userID now, should not be -1
-        System.out.println("User ID After Login: " + beSocial.userID);
+        System.out.println("User ID After Login: " + BeSocial.userID);
         // Log out user
         System.out.println("Logging out user to test login with invalid credentials");
         beSocial.logout();
@@ -1294,7 +1294,7 @@ public class Driver {
         beSocial.login(user1.name, "wrongPassword");
 
         // Print the userID now, should be -1
-        System.out.println("User ID After Login With Invalid Credentials " + beSocial.userID);
+        System.out.println("User ID After Login With Invalid Credentials " + BeSocial.userID);
         System.out.println("Login test completed\n\n");
 
 
