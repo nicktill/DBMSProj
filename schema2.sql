@@ -181,4 +181,3 @@ SELECT * FROM groupMember;
 SELECT * FROM pendingGroupMember;
 SELECT * FROM message;
 SELECT * FROM messageRecipient;
-
