@@ -528,7 +528,7 @@ public class Driver {
         // Log in to a user that is in a group
 
         //logout user if they are loggedi n 
-        if (beSocial.userID != -1) {
+        if (BeSocial.userID != -1) {
             beSocial.logout();
       }
         beSocial.login(user1.name, user1.password);
@@ -804,7 +804,7 @@ public class Driver {
     // Login to random user, doesn't matter
 
     // only login user if they are not logged in
-    if (beSocial.userID == -1) {
+    if (BeSocial.userID == -1) {
         beSocial.login(user1.name, user1.password);
     }
 
@@ -1275,7 +1275,7 @@ public class Driver {
     private static void testLogin() {
         // Start by calling logout for pure isolation
         // !ONLY LOGOUT IF USER IS LOGGED IN (to prevent error message 'User is not logged in')
-        if (beSocial.userID != -1) {
+        if (BeSocial.userID != -1) {
             beSocial.logout();
         }
         // ! ACTUAL OUTPUT
