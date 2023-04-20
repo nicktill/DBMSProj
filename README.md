@@ -24,6 +24,4 @@ Run the program. Note that you will have to enter the database username and pass
 
 TODOs:
 
-- finish tests
-- ensure no sql injection
 - concurrency check

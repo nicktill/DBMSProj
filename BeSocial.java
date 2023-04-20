@@ -495,6 +495,20 @@ public class BeSocial {
                 System.out.println("This user does not exist");
                 return;
             }
+            // Check that they are not already friends with the user
+            PreparedStatement checkNotFriend = conn.prepareStatement(
+                "SELECT * FROM friend WHERE (userid1=? AND userid2=?) OR (userid1=? AND userid2=?);"
+            );
+            checkNotFriend.setInt(1, userID);
+            checkNotFriend.setInt(2, toID);
+            checkNotFriend.setInt(3, toID);
+            checkNotFriend.setInt(4, userID);
+            ResultSet rs2 = checkNotFriend.executeQuery();
+            // The result set should be empty
+            if (rs2.next()) {
+                System.out.println("You are already friends with this user");
+                return;
+            }
             String name = rs.getString("name");
             System.out.printf("You want to request a friendship with %s? (y/n): ", name);
             char ans = 'n';
