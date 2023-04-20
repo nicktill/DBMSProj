@@ -189,7 +189,14 @@ public class BeSocial {
                         beSocial.createGroup();
                         break;
                     case 7:
-                        beSocial.initiateAddingGroup();
+                        System.out.print("Enter the group ID you would like to search for: ");
+                        int gID = sc.nextInt();
+                        sc.nextLine();
+                        System.out.print("Enter your request text: ");
+                        String req = sc.nextLine();
+                        req = req.substring(0, Math.min(req.length(), 200));
+
+                        beSocial.initiateAddingGroup(gID, req);
                         break;
                     case 8:
                         beSocial.confirmGroupMembership(-1, null);
@@ -759,13 +766,7 @@ public class BeSocial {
     // * Given a group ID and the request's text, create a pending request of adding
     // the logged-in user
     // * to the group by inserting a new entry into the pendingGroupMember relation.
-    public void initiateAddingGroup() {
-        System.out.print("Enter the group ID you would like to search for: ");
-        int gID = sc.nextInt();
-        sc.nextLine();
-        System.out.print("Enter your request text: ");
-        String req = sc.nextLine();
-        req = req.substring(0, Math.min(req.length(), 200));
+    public void initiateAddingGroup(int gID, String req) {
         if (req.equals(""))
             req = null;
 
