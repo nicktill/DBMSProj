@@ -186,7 +186,29 @@ public class BeSocial {
                         beSocial.confirmFriendRequests(-1, -1);
                         break;
                     case 6:
-                        beSocial.createGroup();
+                        System.out.print("Enter the group name (50 characters or less): ");
+                        String name_;
+                        name_ = sc.nextLine();
+                        while (name_.isEmpty() || name_.length() > 50) {
+                            System.out.print("Enter a valid group name: ");
+                            name_ = sc.nextLine();
+                        }
+                
+                        System.out.println("Enter the group description (optional) (200 characters or less): ");
+                        String groupDescription = sc.nextLine();
+                        while (groupDescription.length() > 200) {
+                            System.out.print("Enter a valid group description: ");
+                            groupDescription = sc.nextLine();
+                        }
+                
+                        System.out.println("Enter the group membership limit (default 10): ");
+                        int membershipLimit = 10;
+                        try {
+                            membershipLimit = Integer.parseInt(sc.nextLine());
+                        } catch (Exception e) {
+                        }
+
+                        beSocial.createGroup(name_, groupDescription, membershipLimit);
                         break;
                     case 7:
                         beSocial.initiateAddingGroup();
@@ -671,35 +693,12 @@ public class BeSocial {
     // group to the system,
     // * add the current user as its first member with the role manager. gIDs should
     // be auto-generated.
-    public void createGroup() {
-        System.out.print("Enter the group name (50 characters or less): ");
-        String name = sc.nextLine();
-        while (name.isEmpty() || name.length() > 50) {
-            System.out.print("Enter a valid group name: ");
-            name = sc.nextLine();
-        }
-
-        System.out.println("Enter the group description (optional) (200 characters or less): ");
-        String groupDescription = sc.nextLine();
-        while (groupDescription.length() > 200) {
-            System.out.print("Enter a valid group description: ");
-            groupDescription = sc.nextLine();
-        }
-
-        System.out.println("Enter the group membership limit (default 10): ");
-        int membershipLimit = 10;
+    public void createGroup(String name, String groupDescription, int membershipLimit) throws SQLException {
         try {
-            membershipLimit = Integer.parseInt(sc.nextLine());
-        } catch (Exception e) {
-        }
-
-        try {
-
             // Make sure it is atomic so that there can be no race condition in making the
             // gID
             conn.setAutoCommit(false);
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-
             // Generate a group ID
             Statement st = conn.createStatement();
             String query = "SELECT MAX(gID) AS max_gID FROM groupInfo;";

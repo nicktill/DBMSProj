@@ -525,21 +525,77 @@ public class Driver {
     }
 
     // Nick
-    private static void testCreateGroup() {
-        // Login to random user, doesn't matter
+   private static void testCreateGroup()  {
+    // Login to random user, doesn't matter
 
-        // Print groupInfo to show that it is empty
-
-        // Create three groups, one of which has a max group size of 2
-
-        // Print groupInfo to show that three group have been created
-
-        // Print groupMember to show that the logged in user has been added as a manager of every group
-
-        // If all this is good, the test passed
-
-        // Logout of user
+    // only login user if they are not logged in
+    if (beSocial.userID == -1) {
+        beSocial.login(user1.name, user1.password);
     }
+
+    // drop the tables first (if any):
+    try {
+        Statement st = conn.createStatement();
+        String deleteQuery = "DELETE FROM groupInfo";
+        st.executeUpdate(deleteQuery);
+        String query = "SELECT * FROM groupInfo";
+        ResultSet rs = st.executeQuery(query);
+        if (!rs.next()) {
+            System.out.println("Group info is empty");
+        }
+        st.close();
+    } catch (SQLException e) {
+        System.out.println(e);
+        return;
+    }
+    // Create a group with a name and description
+    System.out.println("Creating three new groups...");
+    try{
+        beSocial.createGroup("Test Group 1", "This is a test group", 10);
+        beSocial.createGroup("Test Group 2", "This is a test group", 15);
+        beSocial.createGroup("Test Group 3", "This is a test group", 17);
+    }
+    catch (SQLException e) {
+        System.out.println(e);
+        return;
+    }
+    // Print groupInfo to show that three groups have been created
+    try {
+        Statement st = conn.createStatement();
+        String query = "SELECT COUNT(*) FROM groupInfo;";
+        ResultSet rs = st.executeQuery(query);
+        rs.next();
+        int count = rs.getInt(1);
+        System.out.println("Number of groups created: " + count);
+        st.close();
+    } catch (SQLException e) {
+        System.out.println(e);
+        return;
+    }
+
+    // displaying newly created groupInfo
+
+    try {
+        Statement st = conn.createStatement();
+        String query = "SELECT * FROM groupInfo;";
+        ResultSet rs = st.executeQuery(query);
+        while (rs.next()) {
+            System.out.println("Group ID: " + rs.getInt(1));
+            System.out.println("Group Name: " + rs.getString(2));
+            System.out.println("Group Size: " + rs.getInt(3));
+            System.out.println("Group Description: " + rs.getString(4));
+        }
+        st.close();
+    } catch (SQLException e) {
+        System.out.println(e);
+        return;
+    }
+
+    // If all this is good, the test passed
+    System.out.println("testCreateGroups passed!");
+    // Logout of user
+    beSocial.logout();
+}
 
     // Steven
     private static void testConfirmFriendRequests() {
