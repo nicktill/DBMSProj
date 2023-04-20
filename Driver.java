@@ -1147,17 +1147,9 @@ public class Driver {
     }
     // Create a group with a name and description
     System.out.println("Creating three new groups...");
-    try{
-
-        beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
-        beSocial.createGroup("Test Group 2", "This is a test group description #2", -1); //test default value 10
-        beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
-
-    }
-    catch (SQLException e) {
-        System.out.println(e);
-        return;
-    }
+    beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
+    beSocial.createGroup("Test Group 2", "This is a test group description #2", null); //test default value 10
+    beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
     // Print groupInfo to show that three groups have been created
     try {
         Statement st = conn.createStatement();

@@ -378,7 +378,7 @@ BEGIN
 
     IF rec_pending IS NOT NULL THEN
         INSERT INTO groupmember VALUES (leaveGroup.gID, rec_pending.userid, 'member', (SELECT pseudo_time FROM clock));
-        DELETE FROM pendinggroupmember P WHERE p.gid=rec_pending.gid AND p.userid=rec_pending.userid;
+        DELETE FROM pendinggroupmember P WHERE p.gid = rec_pending.gid AND p.userid = rec_pending.userid;
         -- Trigger handles the removal of the member
     END IF;
 END;
@@ -413,19 +413,20 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION getFriendName(uID INT, fID INT)
-RETURNS VARCHAR(50) AS
+    RETURNS VARCHAR(50) AS
 $$
-    DECLARE
-        returnVal VARCHAR(50) := NULL;
+DECLARE
+    returnVal VARCHAR(50) := NULL;
 
-    BEGIN
-        SELECT P.name INTO returnVal
-        FROM profile P
-        WHERE P.userid=fID AND
-              EXISTS (SELECT * FROM friend WHERE (userid1=fID AND userid2=uID) OR (userid2=fID AND userid1=uID));
+BEGIN
+    SELECT P.name
+    INTO returnVal
+    FROM profile P
+    WHERE P.userid = fID
+      AND EXISTS(SELECT * FROM friend WHERE (userid1 = fID AND userid2 = uID) OR (userid2 = fID AND userid1 = uID));
 
-        RETURN returnVal;
-    end;
+    RETURN returnVal;
+end;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
@@ -569,7 +570,8 @@ BEGIN
     -- Check if they are directly friends with the person (1 hop solution)
     IF (SELECT userid1
         FROM friend
-        WHERE (userid1 = startID AND userid2 = endID) OR (userid1 = endID AND userid2 = startID)) IS NOT NULL THEN
+        WHERE (userid1 = startID AND userid2 = endID)
+           OR (userid1 = endID AND userid2 = startID)) IS NOT NULL THEN
         RETURN QUERY SELECT startID, -1, -1, endID;
     end if;
 
@@ -763,3 +765,31 @@ CREATE OR REPLACE TRIGGER groupSize
     ON groupMember
     FOR EACH ROW
 EXECUTE FUNCTION check_group_size();
+
+-- We want a trigger to make sure that a new group with a NULL for size will default to 10
+CREATE OR REPLACE FUNCTION add_group_size()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    default_val INT;
+BEGIN
+    -- Get the default value from the catalog ;)
+    SELECT column_default
+    FROM information_schema.columns
+    WHERE (table_schema, table_name) = ('public', 'groupinfo')
+      AND column_name = 'size'
+    INTO default_val;
+
+    IF NEW.size IS NULL THEN
+        NEW.size = default_val;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER addGroupSize
+    BEFORE INSERT
+    ON groupInfo
+    FOR EACH ROW
+EXECUTE FUNCTION add_group_size();

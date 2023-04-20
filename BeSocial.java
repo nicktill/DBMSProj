@@ -208,7 +208,7 @@ public class BeSocial {
                         }
                 
                         System.out.println("Enter the group membership limit (default 10): ");
-                        int membershipLimit = 10;
+                        Integer membershipLimit = null;
                         try {
                             membershipLimit = Integer.parseInt(sc.nextLine());
                         } catch (Exception e) {
@@ -710,7 +710,7 @@ public class BeSocial {
     // group to the system,
     // * add the current user as its first member with the role manager. gIDs should
     // be auto-generated.
-    public void createGroup(String name, String groupDescription, int membershipLimit) throws SQLException {
+    public void createGroup(String name, String groupDescription, Integer membershipLimit) {
         try {
             // Make sure it is atomic so that there can be no race condition in making the
             // gID
@@ -730,16 +730,16 @@ public class BeSocial {
                 gID += 1;
             }
 
-            if (membershipLimit == -1){
-                membershipLimit = 10;
-            }
-
             // Create Group
             PreparedStatement createGroup = conn.prepareStatement(
                     "INSERT INTO groupInfo VALUES(?, ? , ? , ?);");
             createGroup.setInt(1, gID);
             createGroup.setString(2, name);
-            createGroup.setInt(3, membershipLimit);
+            if (membershipLimit != null) {
+                createGroup.setInt(3, membershipLimit);
+            } else {
+                createGroup.setNull(3, java.sql.Types.NULL);
+            }
             createGroup.setString(4, groupDescription);
             createGroup.executeUpdate();
 
