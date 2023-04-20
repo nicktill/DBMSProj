@@ -2302,6 +2302,23 @@ public class Driver {
     }
 
     private static void testDropProfile() {
+        // Make user 5 a group member 
+        beSocial.login(user5.name, user5.password);
+        beSocial.createGroup("Beefin", "", null);
+        beSocial.logout();
+
+        // Make user 2 a group member
+        // Make user 5 a pending group member for another group
+        // Make user 2 a pending group member for another group
+        beSocial.login(user2.name, user2.password);
+        beSocial.createGroup("Beefin2", "", null);
+        beSocial.initiateAddingGroup(1, "");
+        beSocial.logout();
+
+        beSocial.login(user5.name, user5.password);
+        beSocial.initiateAddingGroup(2, "");
+        beSocial.logout();
+
         // Make sure only the admin profile can run it
         beSocial.login(user1.name, user1.password);
         beSocial.dropProfile(user5.email);
@@ -2331,6 +2348,128 @@ public class Driver {
             System.out.println("Error querying database for profiles");
         }
 
+        
+
+        // Check group member table before
+        System.out.println("groupMember Table before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM groupMember;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+                System.out.println(gID + "      " + userID + "      " + role + "        " + lastConfirmed.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for groups");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+        
+        // Check the friend table before
+        System.out.println("Friend before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM friend;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int userID1 = rs.getInt("userID1");
+                int userID2 = rs.getInt("userID2");
+                Date JDate = rs.getDate("JDate");
+                String requestText = rs.getString("requestText");
+                
+                System.out.println(userID1 + "      " + userID2 + "      " + JDate.toString() + "        " + requestText);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for friends");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the pendingfriend table before
+        System.out.println("Pending Friend before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM pendingFriend;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                
+                System.out.println(fromID + "      " + toID + "        " + requestText);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println(e);
+            System.out.println("Error querying database for pending friends");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // check the pendinggroupmember table before
+        System.out.println("Pending Group Member before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM pendingGroupMember;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+                
+                System.out.println(gID + "      " + userID + "        " + requestText + "       " + requestTime.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println(e);
+            System.out.println("Error querying database for pending group members");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the message table before
+        System.out.println("Message Table before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM message;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int fromID = rs.getInt("fromID");
+                String messageBody = rs.getString("messageBody");
+                int toUserID = rs.getInt("toUserID");
+                int toGroupID = rs.getInt("toGroupID");
+                Timestamp timeSent = rs.getTimestamp("timeSent");
+                
+                System.out.println(msgID + "      " + fromID + "        " + messageBody + "       " + toUserID + "      " + toGroupID + "       " + timeSent.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for messages");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the message recipient table before
+        System.out.println("Message Recipient before drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM messageRecipient;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int userID = rs.getInt("userID");
+                
+                System.out.println(msgID + "      " + userID);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for message recipients");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
         System.out.println("Removing 2 users...\n");
 
         beSocial.dropProfile(user2.email);
@@ -2354,6 +2493,125 @@ public class Driver {
         } catch (SQLException e) {
             System.out.println("Error querying database for profiles");
         } 
+
+        // Check group member table after
+        System.out.println("Group Member Table after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM groupMember;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+                System.out.println(gID + "      " + userID + "      " + role + "        " + lastConfirmed.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for groups");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+        
+        // Check the friend table after
+        System.out.println("Friend after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM friend;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int userID1 = rs.getInt("userID1");
+                int userID2 = rs.getInt("userID2");
+                Date JDate = rs.getDate("JDate");
+                String requestText = rs.getString("requestText");
+                
+                System.out.println(userID1 + "      " + userID2 + "      " + JDate.toString() + "        " + requestText);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for friends");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the pendingfriend table after
+        System.out.println("Pending Friend after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM pendingFriend;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int fromID = rs.getInt("fromID");
+                int toID = rs.getInt("toID");
+                String requestText = rs.getString("requestText");
+                
+                System.out.println(fromID + "      " + toID + "        " + requestText);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println(e);
+            System.out.println("Error querying database for pending friends");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // check the pendinggroupmember table after
+        System.out.println("Pending Group Member after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM pendingGroupMember;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+                
+                System.out.println(gID + "      " + userID + "        " + requestText + "       " + requestTime.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for pending group members");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the message table after
+        System.out.println("Message Table after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM message;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int fromID = rs.getInt("fromID");
+                String messageBody = rs.getString("messageBody");
+                int toUserID = rs.getInt("toUserID");
+                int toGroupID = rs.getInt("toGroupID");
+                Timestamp timeSent = rs.getTimestamp("timeSent");
+                
+                System.out.println(msgID + "      " + fromID + "        " + messageBody + "       " + toUserID + "      " + toGroupID + "       " + timeSent.toString());
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for messages");
+        }
+        System.out.println("---------------------------------------------------------------\n");
+
+        // Check the message recipient table after
+        System.out.println("Message Recipient after drops");
+        System.out.println("---------------------------------------------------------------");
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM messageRecipient;");
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int userID = rs.getInt("userID");
+                
+                System.out.println(msgID + "      " + userID);
+            }
+            System.out.println("---------------------------------------------------------------\n");
+        } catch (SQLException e) {
+            System.out.println("Error querying database for message recipients");
+        }
+        System.out.println("---------------------------------------------------------------\n");
     }
 
     private static void testCreateProfile() {
