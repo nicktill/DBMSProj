@@ -849,3 +849,22 @@ CREATE OR REPLACE TRIGGER friendOrder
     ON friend
     FOR EACH ROW
 EXECUTE FUNCTION resolve_friend();
+
+CREATE OR REPLACE FUNCTION remove_profile_from_db()
+RETURNS TRIGGER AS
+$$
+BEGIN
+    DELETE FROM groupmember WHERE userid=OLD.userID;
+    DELETE FROM friend WHERE userID1=OLD.userID OR userID2=OLD.userID;
+    DELETE FROM pendingfriend WHERE fromID=OLD.userID OR toID=OLD.userID;
+    DELETE FROM pendinggroupmember WHERE userID=OLD.userID;
+    DELETE FROM message WHERE fromID=OLD.userID OR toUserID=OLD.userID;
+    DELETE FROM messagerecipient WHERE msgID=OLD.userID OR userID=OLD.userID;
+end;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER removeProfileFromAll
+    AFTER DELETE
+    ON profile
+    FOR EACH ROW
+EXECUTE FUNCTION remove_profile_from_db();
