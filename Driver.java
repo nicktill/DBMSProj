@@ -628,16 +628,32 @@ public class Driver {
 
     // TODO
     private static void testSearchForProfile() {
-        // log out and log in to any user you want
-
-        // WILL HAVE TO REFACTOR, should be easy
 
         // Choose a random string to search for and show that the results are none
+        beSocial.login("admin", "admin");
+
+        System.out.println("Random String Search, should return nothing");
+        System.out.println("---------------------------------------");
+        beSocial.searchForProfile("sofhesofhsoefhsoeifh");
+        System.out.println("---------------------------------------");
 
         // choose one of the users and enter a string that matches
+        System.out.println("Search for anyone named Kenny, should return 1 userID");
+        System.out.println("---------------------------------------");
+        beSocial.searchForProfile("Kenny");
+        System.out.println("---------------------------------------");
+
+        // Choose @ to get all users
+        System.out.println("Search for @, since every email has it, it should return 6 userIDs");
+        System.out.println("---------------------------------------");
+        beSocial.searchForProfile("@");
+        System.out.println("---------------------------------------");
         
         // Now choose two words, each one for a different user and show that the result is a union
-        System.out.println("Test Search For Profile Not Implemented");
+        System.out.println("Search using two words, since theres only one Kenny and one Swift, should return two userIDs");
+        System.out.println("---------------------------------------");
+        beSocial.searchForProfile("Kenny Swift");
+        System.out.println("---------------------------------------");
     }
 
     // Nick
