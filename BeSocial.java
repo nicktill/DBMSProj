@@ -1161,32 +1161,29 @@ public class BeSocial {
         System.out.print("Enter a search string: ");
         String input = sc.nextLine();
 
-        String[] allSearches = input.split(" ");
+        try {
+            String query = "SELECT * FROM searchForProfile(?);";
+            PreparedStatement listFriendsStatement = conn.prepareStatement(query);
+            listFriendsStatement.setString(1, input);
+            // Execute the query and process the results
+            ResultSet rs = listFriendsStatement.executeQuery();
 
-        HashSet<Integer> resultingProfiles = new HashSet<>();
+            System.out.println("Results:");
+            while (rs.next()) {
+                int userID = rs.getInt("userID");
+                String name = rs.getString("name");
+                String email = rs.getString("email");
+                String password = rs.getString("password");
+                Date dob = rs.getDate("date_of_birth");
+                Timestamp lastlogin = rs.getTimestamp("lastlogin");
 
-        Arrays.stream(allSearches).forEach(search -> {
-            try {
-                PreparedStatement checkUsername = conn.prepareStatement(
-                        "SELECT userID FROM profile WHERE name LIKE ? OR email LIKE ?;");
-                checkUsername.setString(1, "%" + search + "%");
-                checkUsername.setString(2, "%" + search + "%");
-
-                ResultSet res = checkUsername.executeQuery();
-                while (res.next()) {
-                    int userID = res.getInt("userID");
-                    resultingProfiles.add(userID);
-                }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-                printErrors(e);
+                System.out.println(userID + "       " + name + "     " + email + "      " + password + "        " + dob.toString() + "      " + lastlogin.toString());
             }
-        });
-
-        int[] userIDs = resultingProfiles.stream().mapToInt(Integer::intValue).toArray();
-
-        Arrays.stream(userIDs).forEach(i -> System.out.println(i));
+        } catch (SQLException e) {
+            System.out.println("Error finding profile information");
+            printErrors(e);
+            return;
+        }
     }
 
     // * With this the user can send a message to one friend given the friend's

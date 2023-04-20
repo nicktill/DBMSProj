@@ -793,3 +793,20 @@ CREATE OR REPLACE TRIGGER addGroupSize
     ON groupInfo
     FOR EACH ROW
 EXECUTE FUNCTION add_group_size();
+
+CREATE OR REPLACE FUNCTION searchForProfile(input varchar(200))
+RETURNS SETOF profile AS
+$$
+DECLARE
+    result profile%ROWTYPE;
+    patterns text[];
+    var text;
+BEGIN
+    patterns = string_to_array(input, ' '); -- https://www.w3resource.com/PostgreSQL/postgresql_string_to_array-function.php
+    FOREACH var IN ARRAY patterns LOOP -- https://docs.yugabyte.com/preview/api/ysql/datatypes/type_array/looping-through-arrays/
+        SELECT * INTO result FROM profile WHERE (name LIKE '%'||var||'%' OR email LIKE '%'||var||'%');
+    END LOOP;
+
+    RETURN QUERY SELECT * FROM result WHERE userID != 0;
+end;
+$$ LANGUAGE plpgsql;
