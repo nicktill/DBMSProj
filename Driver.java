@@ -442,14 +442,6 @@ public class Driver {
     }
 
     private static void testRankGroups() {
-        // TODO: Come back when other group related tests have been written
-
-        // First call rankGroups when there are groups in the system
-        System.out.println("\n--------------------------------------");
-        System.out.println("Expected output:");
-        // TODO: Fill in
-        System.out.println("--------------------------------------");
-        System.out.println("Actual results:");
         beSocial.rankGroups();
 
         // Log out and log in as admin
@@ -513,29 +505,31 @@ public class Driver {
         // Get the current time
         Timestamp curTime;
         try {
-            PreparedStatement s = conn.prepareStatement("SELECT * FROM clock;");
+            PreparedStatement s = conn.prepareStatement("SELECT pseudo_time FROM clock;");
             ResultSet rs = s.executeQuery();
             rs.next();
-            curTime = rs.getTimestamp(1);
+            curTime = rs.getTimestamp("pseudo_time");
         } catch (SQLException e) {
             System.out.println("Error getting current time");
             return;
         }
 
-        // Send a message to user2
-        beSocial.sendMessageToUser("Hello Kenny Pickett!", 2);
+        beSocial.sendMessageToUser("This message should not be shown.", 2);
 
         // Change the time in the system
         ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
         Timestamp newTimestamp = Timestamp.from(zonedDateTime.plus(14, ChronoUnit.DAYS).toInstant());
         try {
             PreparedStatement s = conn
-                    .prepareStatement("UPDATE clock SET pseudo_time=" + newTimestamp.toString() + ";");
+                    .prepareStatement("UPDATE clock SET pseudo_time='" + newTimestamp.toString() + "';");
             s.execute();
         } catch (SQLException e) {
-            System.out.println("Error getting current time");
+            System.out.println("Error setting current time");
             return;
         }
+
+        // Send a message to user2
+        beSocial.sendMessageToUser("Hello Kenny Pickett!", 2);
 
         // log out and log in to user2
         beSocial.logout();
@@ -545,6 +539,7 @@ public class Driver {
         beSocial.displayNewMessages();
     }
 
+    // TODO
     private static void testDisplayMessages() {
         // Login to user with no messages
 
@@ -895,7 +890,6 @@ public class Driver {
         beSocial.logout();
     }
 
-    // TODO
     private static void testSearchForProfile() {
 
         // Choose a random string to search for and show that the results are none
