@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -450,7 +451,15 @@ public class Driver {
         beSocial.login("admin", "admin");
 
         // Remove all groups
-        // TODO: Figure out how to do this
+        try {
+            PreparedStatement s = conn.prepareStatement("DELETE FROM groupInfo WHERE TRUE;");
+            PreparedStatement s2 = conn.prepareStatement("DELETE FROM groupMember WHERE TRUE;");
+            s.execute();
+            s2.execute();
+        } catch (SQLException e) {
+            System.out.println("Error deleting all groups and group members.");
+            return;
+        }
 
         // Call rank groups
         System.out.println("\n--------------------------------------");
