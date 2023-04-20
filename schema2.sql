@@ -134,10 +134,10 @@ CREATE TABLE message (
     -- If a sender is deleted, we should set the foreign key to null so that
     -- messages can be preserved for other users
     CONSTRAINT FK1_message FOREIGN KEY (fromID) REFERENCES profile(userID)
-        ON DELETE SET NULL ON UPDATE CASCADE,
+        ON DELETE CASCADE ON UPDATE CASCADE,
     -- Same principle for recipient
     CONSTRAINT FK2_message FOREIGN KEY (toUserID) REFERENCES profile(userID)
-        ON DELETE SET NULL ON UPDATE CASCADE,
+        ON DELETE CASCADE ON UPDATE CASCADE,
     -- If a group is deleted, then all the associated messages are deleted
     CONSTRAINT FK3_message FOREIGN KEY (toGroupID) REFERENCES groupInfo(gID)
         ON DELETE CASCADE ON UPDATE CASCADE
