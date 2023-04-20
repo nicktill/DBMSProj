@@ -553,7 +553,7 @@ public class Driver {
             return;
         }
         
-        String expectedMsgRow = "0, 1, Hello, this is a test message., 2, 0 (NULL), " + curTime.toString();
+        String expectedMsgRow = "0, 1, Hello, this is a test message., 2, 0, " + curTime.toString();
         String expectedMsgRecRow = "0, 2";
 
         String obMsgRow, obMsgRecRow;
@@ -584,6 +584,7 @@ public class Driver {
             return;
         }
 
+        System.out.println("Note that for toGroupID being 0 indicates null. JDBC getInt() returns 0.");
         System.out.println("Expected message and message recipient insertions");
         System.out.println("-----------------------------------------------------");
         System.out.println(expectedMsgRow + "\n" + expectedMsgRecRow);
@@ -594,10 +595,16 @@ public class Driver {
         System.out.println(obMsgRow + "\n" + obMsgRecRow);
         System.out.println("-----------------------------------------------------");
 
+        if (expectedMsgRecRow.equals(obMsgRecRow) && expectedMsgRow.equals(obMsgRow)) {
+            System.out.println("This test has passed!\n");
+        } else {
+            System.out.println("This test has failed.\n");
+        }
+
         // Send message to a user that does not exist/bad send
-        System.out.println("Test send a message that is not allowed.\nUser sends a message to themselves");
+        System.out.println("Test send a message that is not allowed. User sends a message to themselves");
         beSocial.sendMessageToUser("Hello, this is a test message.", 0);
-        // Should get an error print out from the function
+
     }
 
     // TODO

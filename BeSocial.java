@@ -1214,6 +1214,7 @@ public class BeSocial {
             }
 
             do {
+                // Print out all of the user's friends user ID's
                 int friendID = rs.getInt("userID1");
                 if (friendID == userID) {
                     friendID = rs.getInt("userID2");
