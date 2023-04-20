@@ -711,7 +711,6 @@ public class BeSocial {
             String query = "SELECT MAX(gID) AS max_gID FROM groupInfo;";
             ResultSet res = st.executeQuery(query);
             conn.commit();
-
             // Get the gID from the query
             res.next();
             int gID = res.getInt("max_gID");
@@ -719,6 +718,10 @@ public class BeSocial {
                 gID = 0;
             } else {
                 gID += 1;
+            }
+
+            if (membershipLimit == -1){
+                membershipLimit = 10;
             }
 
             // Create Group

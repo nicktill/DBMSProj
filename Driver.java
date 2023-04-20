@@ -422,40 +422,49 @@ public class Driver {
         beSocial.logout();
     }
 
+    // TODO
     private static void testTopMessages() {
         // Assumptions: sendMessagetoUser/Group has been run before
         // 
         System.out.println("Test Top Messages Not Implemented");
     }
 
+    // TODO
     private static void testRankProfiles() {
         System.out.println("Test Rank Profiles Not Implemented");
     }
 
+    // TODO
     private static void testRankGroups() {
         System.out.println("Test Rank Groups Not Implemented");
     }
 
+    // TODO
     private static void testDisplayFriends() {
         System.out.println("Test Display Friends Not Implemented");
     }
 
+    // TODO
     private static void testDisplayNewMessages() {
         System.out.println("Test Display New Messages Not Implemented");
     }
 
+    // TODO
     private static void testDisplayMessages() {
         System.out.println("Test Display Messages Not Implemented");
     }
 
+    // TODO
     private static void testSendMessageToGroup() {
         System.out.println("Test Send Message To Group Not Implemented");
     }
 
+    // TODO
     private static void testSendMessageToUser() {
         System.out.println("Test Send Message To User Not Implemented");
     }
 
+    // TODO
     private static void testSearchForProfile() {
         // log out and log in to any user you want
 
@@ -741,9 +750,11 @@ public class Driver {
     // Create a group with a name and description
     System.out.println("Creating three new groups...");
     try{
-        beSocial.createGroup("Test Group 1", "This is a test group", 10);
-        beSocial.createGroup("Test Group 2", "This is a test group", 2);
-        beSocial.createGroup("Test Group 3", "This is a test group", 17);
+
+        beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
+        beSocial.createGroup("Test Group 2", "This is a test group description #2", -1); //test default value 10
+        beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
+
     }
     catch (SQLException e) {
         System.out.println(e);
@@ -1225,9 +1236,9 @@ public class Driver {
         System.out.println("Login test completed\n\n");
 
         // Do comparison is old == new, if false, login worked if true login didnt work
-
     }
 
+    // TODO
     private static void testDropProfile() {
         System.out.println("Test Drop Profile Not Implemented");
     }
