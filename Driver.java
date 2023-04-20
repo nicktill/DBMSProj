@@ -480,9 +480,11 @@ public class Driver {
         System.out.println("Test Display New Messages Not Implemented");
     }
 
-    // TODO
     private static void testDisplayMessages() {
-        System.out.println("Test Display Messages Not Implemented");
+        beSocial.logout();
+        beSocial.login(user1.name, user1.password);
+
+        beSocial.displayMessages();
     }
 
     // TODO
