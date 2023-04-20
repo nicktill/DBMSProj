@@ -1421,13 +1421,15 @@ public class BeSocial {
             int i = 1;
             do {
                 // Print formatted message
-                String message = rs.getString(2);
-                int msgID = rs.getInt(1);
-                Timestamp t = rs.getTimestamp(3);
-                int fromID = rs.getInt(4);
+                String message = rs.getString("messageBody");
+                int msgID = rs.getInt("msgID");
+                Timestamp t = rs.getTimestamp("timeSent");
+                int fromID = rs.getInt("fromID");
+                int groupID = rs.getInt("groupID");
+                int toID = rs.getInt("toID");
 
-                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
-                        t.toString(), message);
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tTo ID: %d\tGroup ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
+                        toID, groupID, t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");

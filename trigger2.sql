@@ -435,7 +435,9 @@ CREATE OR REPLACE FUNCTION getMessages(toUser INT, newMsg BOOLEAN)
                 msgID       INT,
                 messageBody VARCHAR(200),
                 timeSent    TIMESTAMP,
-                fromID      INT
+                fromID      INT,
+                groupID     INT,
+                toID        INT
             )
 AS
 $$
@@ -443,7 +445,7 @@ BEGIN
     IF newMsg THEN
         -- Get all messages sent to the user after they logged in
         RETURN QUERY
-            SELECT M.msgid, M.messagebody, M.timesent, M.fromid
+            SELECT M.msgid, M.messagebody, M.timesent, M.fromid, M.toGroupID, M.toUserID
             FROM messagerecipient AS MR
                      NATURAL JOIN message AS M
             WHERE MR.userid = toUser
@@ -451,7 +453,7 @@ BEGIN
             ORDER BY M.timesent;
     ELSE
         RETURN QUERY
-            SELECT M.msgid, M.messagebody, M.timesent, M.fromid
+            SELECT M.msgid, M.messagebody, M.timesent, M.fromid, M.toGroupID, M.toUserID
             FROM messagerecipient AS MR
                      NATURAL JOIN message AS M
             WHERE MR.userid = toUser
