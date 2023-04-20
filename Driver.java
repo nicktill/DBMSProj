@@ -432,24 +432,30 @@ public class Driver {
     // TODO
     private static void testTopMessages() {
         // Assumptions: sendMessagetoUser/Group has been run before
+
         //
         System.out.println("Test Top Messages Not Implemented");
     }
 
     // TODO
     private static void testRankProfiles() {
-        System.out.println("Test Rank Profiles Not Implemented");
+        // Show ranks
+        beSocial.rankProfiles();
+        
+        System.out.println("Adding more friends...");
+
+        // Add some more friendships
+        try {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO friend VALUES (5, 4, '2022-01-01'); INSERT INTO friend VALUES (1, 5, '2022-01-05');");
+            ps.execute();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        beSocial.rankProfiles();
     }
 
     private static void testRankGroups() {
-        // TODO: Come back when other group related tests have been written
-
-        // First call rankGroups when there are groups in the system
-        System.out.println("\n--------------------------------------");
-        System.out.println("Expected output:");
-        // TODO: Fill in
-        System.out.println("--------------------------------------");
-        System.out.println("Actual results:");
         beSocial.rankGroups();
 
         // Log out and log in as admin
@@ -478,18 +484,42 @@ public class Driver {
 
     // TODO
     private static void testDisplayFriends() {
-        System.out.println("Test Display Friends Not Implemented");
+        // create a linkedList 
+        LinkedList <Integer> s = new LinkedList<Integer>();
+        try {
+            PreparedStatement addFriend = conn.prepareStatement("INSERT INTO friend VALUES(1, 3, '2023-04-19', 'hey there bud');");
+            addFriend.execute();
+        } catch (SQLException e) {
+            System.out.println("Error adding friend");
+            return;
+        }
+        s.add(2); //this is the specific profileID of the user you want to search
+        s.add(0);
+        
+        // logout of user
+        beSocial.logout(); 
+        // login as admin 
+        beSocial.login("admin", "admin");
+        // display friends of user (should be no friends and should not be prompted to pass the friends for search)
+        beSocial.displayFriends(s); // should display no friends
+        
+        // logout 
+        beSocial.logout(); 
+        // login as user1 (Steven Jarmell)
+        beSocial.login(user1.name, user1.password);
+        // display friends passing in 'S' as the search parameter for searching friends
+        beSocial.displayFriends(s); 
     }
 
     private static void testDisplayNewMessages() {
         // log out and log in to user1
-        beSocial.logout();
+        beSocial.logout(); 
         beSocial.login(user1.name, user1.password);
 
         // Get the current time
         Timestamp curTime;
         try {
-            PreparedStatement s = conn.prepareStatement("SELECT * FROM clock;");
+            PreparedStatement s = conn.prepareStatement("SELECT pseudo_time FROM clock;");
             ResultSet rs = s.executeQuery();
             rs.next();
             curTime = rs.getTimestamp("pseudo_time");
@@ -498,15 +528,17 @@ public class Driver {
             return;
         }
 
+        beSocial.sendMessageToUser("This message should not be shown.", 2);
+
         // Change the time in the system
         ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
         Timestamp newTimestamp = Timestamp.from(zonedDateTime.plus(14, ChronoUnit.DAYS).toInstant());
         try {
-            PreparedStatement s = conn
-                    .prepareStatement("UPDATE clock SET pseudo_time= '" + newTimestamp.toString() + "';");
+            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time= '" + newTimestamp.toString() + "';");
+
             s.execute();
         } catch (SQLException e) {
-            System.out.println("Error getting current time");
+            System.out.println("Error setting current time");
             return;
         }
 
@@ -523,6 +555,7 @@ public class Driver {
         beSocial.displayNewMessages();
     }
 
+    // TODO
     private static void testDisplayMessages() {
         // Login to user with no messages
         beSocial.login("admin", "admin");
@@ -540,7 +573,6 @@ public class Driver {
             Statement st = conn.createStatement();
             String query = "INSERT INTO friend VALUES(1, 0, '2001-11-26', 'Hey! Let''s be friends.');";
             st.executeUpdate(query);
-
             st.close();
         } catch (SQLException e) {
             System.out.println(e);
@@ -575,7 +607,6 @@ public class Driver {
         beSocial.logout();
     }
 
-    // TODO
     private static void testSendMessageToGroup() {
         // Login
         beSocial.login(user3.name, user3.password);
@@ -917,7 +948,6 @@ public class Driver {
         beSocial.logout();
     }
 
-    // TODO
     private static void testSearchForProfile() {
 
         // Choose a random string to search for and show that the results are none
@@ -2186,7 +2216,7 @@ public class Driver {
         // Show that profile table is empty
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM profile WHERE userID;";
+            String query = "SELECT * FROM profile WHERE userID!=0;";
             ResultSet rs = st.executeQuery(query);
             System.out.println("Displaying profile table at the start of createProfile Method");
             System.out.println("--------------------------------------------------------------");

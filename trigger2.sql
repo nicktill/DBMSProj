@@ -795,3 +795,46 @@ CREATE OR REPLACE TRIGGER addGroupSize
     ON groupInfo
     FOR EACH ROW
 EXECUTE FUNCTION add_group_size();
+
+-- We want to make sure that friends are not repeated
+CREATE OR REPLACE FUNCTION resolve_friend()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    friendRecord friend%ROWTYPE := NULL;
+    minID        int            := 0;
+    maxID        int            := 0;
+BEGIN
+    -- Order the foreign keys such that id1 < id2
+    IF NEW.userid1 > NEW.userid2 THEN
+        minID := NEW.userid2;
+        maxID := NEW.userid1;
+    ELSE
+        minID := NEW.userid1;
+        maxID := NEW.userid2;
+    END IF;
+
+    -- Now actually set id1 < id2
+    NEW.userid1 := minID;
+    NEW.userid2 := maxID;
+
+    -- Checking the friend relationship doesn't already exist
+    SELECT *
+    INTO friendRecord
+    FROM friend
+    WHERE userid1 = minID
+      AND userid2 = maxID;
+
+    IF friendRecord IS NOT NULL THEN
+        RAISE EXCEPTION 'Friendship already exists' USING ERRCODE = '00002';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER friendOrder
+    BEFORE INSERT
+    ON friend
+    FOR EACH ROW
+EXECUTE FUNCTION resolve_friend();
