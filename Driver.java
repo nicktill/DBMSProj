@@ -534,8 +534,8 @@ public class Driver {
         ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
         Timestamp newTimestamp = Timestamp.from(zonedDateTime.plus(14, ChronoUnit.DAYS).toInstant());
         try {
-            PreparedStatement s = conn
-                    .prepareStatement("UPDATE clock SET pseudo_time='" + newTimestamp.toString() + "';");
+            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time= '" + newTimestamp.toString() + "';");
+
             s.execute();
         } catch (SQLException e) {
             System.out.println("Error setting current time");
@@ -549,6 +549,8 @@ public class Driver {
         beSocial.logout();
         beSocial.login(user2.name, user2.password);
 
+
+
         // Now display new messages
         beSocial.displayNewMessages();
     }
@@ -556,10 +558,53 @@ public class Driver {
     // TODO
     private static void testDisplayMessages() {
         // Login to user with no messages
+        beSocial.login("admin", "admin");
+        System.out.println("Displaying messages for admin, who should have none:");
+        System.out.println("------------------------------------------------------");
+        beSocial.displayMessages();
+        System.out.println("------------------------------------------------------");
+        beSocial.logout();
+        
+        // Send 3 messages to admin
+        beSocial.login(user1.name, user1.password);
 
-        // 
+        // Make sure user 1 and admin are friends
+        try {
+            Statement st = conn.createStatement();
+            String query = "INSERT INTO friend VALUES(1, 0, '2001-11-26', 'Hey! Let''s be friends.');";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
-        // Logout
+        beSocial.sendMessageToUser("Message 1", 0);
+        beSocial.sendMessageToUser("Message 2", 0);
+        beSocial.sendMessageToUser("Message 3", 0);
+        beSocial.logout();
+
+        // Display the 3 messages admin received
+        beSocial.login("admin", "admin");
+        System.out.println("Displaying messages for admin, who should have 3:");
+        System.out.println("Note: group ID will be 0 because NULL defaults to 0");
+        System.out.println("------------------------------------------------------");
+        beSocial.displayMessages();
+        System.out.println("------------------------------------------------------");
+
+        // Send to user 2 from admin
+        beSocial.sendMessageToUser("Message from admin", 1);
+        beSocial.logout();
+
+        // Show that user 2 has a message from admin and a message from user 3 group 1
+        beSocial.login(user1.name, user1.password);
+        System.out.println("Displaying messages for user 1, who should have 2, one from admin andn one from user 3 group 1:");
+        System.out.println("Note: group ID for message from admin will be 0 because NULL defaults to 0");
+        System.out.println("------------------------------------------------------");
+        beSocial.displayMessages();
+        System.out.println("------------------------------------------------------");
+
+        // Logout of user 2
+        beSocial.logout();
     }
 
     private static void testSendMessageToGroup() {
@@ -705,7 +750,7 @@ public class Driver {
             String query = "SELECT * FROM messageRecipient;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("messageRecipient Table AFter Sending Message To Group User Not In");
+            System.out.println("messageRecipient Table After Sending Message To Group User Not In");
             System.out.println("---------------------------------------------");
             int count = 0;
             while (rs.next()) {
