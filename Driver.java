@@ -508,20 +508,205 @@ public class Driver {
 
     private static void testInitiateAddingGroup() {
         // Log into a user that was not used in testCreateGroup
+        beSocial.login(user2.name, user2.password);
 
         // Show that there are no entries in pendingGroupMember
+        boolean test1 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table before test");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("resultText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 0");
+            System.out.println("Actual number of entries: " + count);
+
+            test1 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Send a request to group 0, with body of "Hello, I would like to join your group!"
+        beSocial.initiateAddingGroup(0, "Hello, I would like to join your group!");
 
         // Show that there is one entry in pendinggroupmember for group 0 with user id and message
+        boolean test2 = false;
+        boolean test5 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after requesting to join");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("resultText");
+                if (!test5 && requestText.contains("Hello, I would like to join your group!")) {
+                    test5 = true;
+                }
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 1");
+            System.out.println("Actual number of entries: " + count);
+
+            test2 = (count == 1);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Send a request to group 1 with no body
+        beSocial.initiateAddingGroup(1, "");
 
         // Show that there are two entries now, and one has the default message
+        boolean test3 = false;
+        boolean test4 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after requesting to join");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("resultText");
+                if (!test4 && requestText.contains("I would like to join your group! :)")) {
+                    test4 = true;
+                }
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 2");
+            System.out.println("Actual number of entries: " + count);
+
+            test3 = (count == 2);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Try joining a group that does not exist and show that it will not change pendinggroupmember table
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.initiateAddingGroup(100, "");
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+        boolean test6 = output.contains("The group you tried to join does not exist");
+        boolean test7 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after requesting to join group that doesn't exist");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("resultText");
+        
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 2");
+            System.out.println("Actual number of entries: " + count);
+
+            test7 = (count == 2);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Try joining a group we already joined
+
+        // Add user to group 1
+        try {
+            Statement st = conn.createStatement();
+            String query = "INSERT INTO groupMember VALUES(1,2,'member', '2016-04-24 10:47:12');";
+            st.executeUpdate(query);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Try sending request to join group 1
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        old = System.out;
+        System.setOut(ps);
+
+        beSocial.initiateAddingGroup(1, "");
+
+        System.out.flush();
+        System.setOut(old);
+
+        output = baos.toString();
+
+        boolean test8 = output.contains("You are already in this group");
+
+        // Try joining a group we already requested to join
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        old = System.out;
+        System.setOut(ps);
+
+        beSocial.initiateAddingGroup(0, "");
+
+        System.out.flush();
+        System.setOut(old);
+
+        output = baos.toString();
+
+        boolean test9 = output.contains("You already tried to join this group");
+
+        if (test1 && test2 && test3 && test4 && test5 && test6 && test7 && test8 && test9) {
+            System.out.println("Confirm Friend Request Passed");
+        } else {
+            System.out.println("Test Confirm Friend Request Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
+            System.out.println("Test 5: " + test5);
+            System.out.println("Test 6: " + test6);
+            System.out.println("Test 7: " + test7);
+            System.out.println("Test 8: " + test8);
+            System.out.println("Test 9: " + test9);
+        }
 
         // Logout
+        beSocial.logout();
     }
 
     // Nick
