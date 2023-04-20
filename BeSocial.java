@@ -99,7 +99,7 @@ public class BeSocial {
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
-                try{
+                try {
                     userInput = Integer.parseInt(sc.nextLine());
                 } catch (Exception e) {
                     System.out.println("Invalid input. Please enter a number from the menu");
@@ -199,14 +199,14 @@ public class BeSocial {
                             System.out.print("Enter a valid group name: ");
                             name_ = sc.nextLine();
                         }
-                
+
                         System.out.println("Enter the group description (optional) (200 characters or less): ");
                         String groupDescription = sc.nextLine();
                         while (groupDescription.length() > 200) {
                             System.out.print("Enter a valid group description: ");
                             groupDescription = sc.nextLine();
                         }
-                
+
                         System.out.println("Enter the group membership limit (default 10): ");
                         Integer membershipLimit = null;
                         try {
@@ -237,13 +237,18 @@ public class BeSocial {
                         beSocial.leaveGroup(groupToLeave);
                         break;
                     case 10:
-                        beSocial.searchForProfile();
+                        System.out.print("Enter a search string: ");
+                        String input = sc.nextLine();
+                        beSocial.searchForProfile(input);
                         break;
                     case 11:
                         beSocial.sendMessageToUser(null, -1);
                         break;
                     case 12:
-                        beSocial.sendMessageToGroup();
+                        System.out.print("Enter the group ID of the group you want to message: ");
+                        int groupID = sc.nextInt();
+                        sc.nextLine();
+                        beSocial.sendMessageToGroup(groupID, null);
                         break;
                     case 13:
                         beSocial.displayMessages();
@@ -1110,7 +1115,7 @@ public class BeSocial {
                 System.out.println("Not a member of any Groups.");
                 return;
             }
-           
+
         } catch (SQLException e) {
             printErrors(e);
         }
@@ -1157,9 +1162,7 @@ public class BeSocial {
     // xyz in their name
     // * or email union the set of all user profiles that have abc in their
     // name or email.
-    public void searchForProfile() {
-        System.out.print("Enter a search string: ");
-        String input = sc.nextLine();
+    public void searchForProfile(String input) {
 
         String[] allSearches = input.split(" ");
 
@@ -1235,7 +1238,7 @@ public class BeSocial {
         } else {
             fID = destination;
         }
-        
+
         // Get name of the friend
         String friendName = "";
         try {
@@ -1274,7 +1277,6 @@ public class BeSocial {
         } else {
             message = msg;
         }
-        
 
         message = message.substring(0, Math.min(message.length(), 200));
 
@@ -1335,11 +1337,7 @@ public class BeSocial {
     // * the messageRecipient table with proper user ID information as defined by
     // the groupMember
     // * relation.
-    public void sendMessageToGroup() {
-        // Get the group they want to send
-        System.out.print("Enter the group ID of the group you want to message: ");
-        int groupID = sc.nextInt();
-        sc.nextLine();
+    public void sendMessageToGroup(int groupID, String driverMessage) {
 
         // Check if the user is in the group
         try {
@@ -1362,15 +1360,23 @@ public class BeSocial {
 
         // Get the message they want to send
         StringBuilder sb = new StringBuilder();
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            if (line.equals("END")) {
-                break;
+
+        if (!isDriverMode) {
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                if (line.equals("END")) {
+                    break;
+                }
+                sb.append(line).append("\n");
             }
-            sb.append(line).append("\n");
         }
 
-        String message = sb.toString().substring(0, Math.min(sb.length(), 200));
+        String message = "";
+        if (!isDriverMode) {
+            sb.toString().substring(0, Math.min(sb.length(), 200));
+        } else {
+            message = driverMessage;
+        }
 
         // Call pgsql function that will send the msg to everyone in a given group
         // Java try-with-resources automatically closes the connection and callable
@@ -1513,7 +1519,6 @@ public class BeSocial {
         } else {
             profileID = inputs.poll();
         }
-        
 
         while (profileID > 0) {
             // Retrieve friend information and print it

@@ -432,7 +432,7 @@ public class Driver {
     // TODO
     private static void testTopMessages() {
         // Assumptions: sendMessagetoUser/Group has been run before
-        // 
+        //
         System.out.println("Test Top Messages Not Implemented");
     }
 
@@ -505,7 +505,8 @@ public class Driver {
         ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
         Timestamp newTimestamp = Timestamp.from(zonedDateTime.plus(14, ChronoUnit.DAYS).toInstant());
         try {
-            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time=" + newTimestamp.toString() + ";");
+            PreparedStatement s = conn
+                    .prepareStatement("UPDATE clock SET pseudo_time=" + newTimestamp.toString() + ";");
             s.execute();
         } catch (SQLException e) {
             System.out.println("Error getting current time");
@@ -521,15 +522,257 @@ public class Driver {
     }
 
     private static void testDisplayMessages() {
-        beSocial.logout();
-        beSocial.login(user1.name, user1.password);
+        // Login to user with no messages
 
-        beSocial.displayMessages();
+        //
+
+        // Logout
     }
 
     // TODO
     private static void testSendMessageToGroup() {
-        System.out.println("Test Send Message To Group Not Implemented");
+        // Login
+        beSocial.login(user3.name, user3.password);
+
+        // Clear the message/message recipient table
+        // Delete all entries from pendingGroupMember table
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM message;";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to remove messages");
+            return;
+        }
+
+        // Delete all entries from pendingGroupMember table
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM messageRecipient;";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to remove messageRecipients");
+            return;
+        }
+
+        // Get the message table before
+        boolean test1 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM message;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Message Table Before Sending Message To Group");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int fromID = rs.getInt("fromID");
+                String messageBody = rs.getString("messageBody");
+                int toUserID = rs.getInt("toUserID");
+                int toGroupID = rs.getInt("toGroupID");
+                Timestamp timeSent = rs.getTimestamp("timeSent");
+
+                System.out.println(msgID + "        " + fromID + "      " + messageBody + "     " + toUserID
+                        + "        " + toGroupID + "       " + timeSent.toString());
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 0");
+            System.out.println("Observed: " + count);
+
+            test1 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Get the message recipient table before
+        boolean test2 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM messageRecipient;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("messageRecipient Table Before Sending Message To Group");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int userID = rs.getInt("userID");
+
+                System.out.println(msgID + "        " + userID);
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 0");
+            System.out.println("Observed: " + count);
+
+            test2 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Try and send a message to a group the user isn't in
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.sendMessageToGroup(0, "Test from driver!");
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+
+        boolean test3 = output.contains("You cannot send a message to that group because you are not in it");
+
+        // Get the message table after
+        boolean test4 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM message;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Message Table Before Sending Message To Group User Not In");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int fromID = rs.getInt("fromID");
+                String messageBody = rs.getString("messageBody");
+                int toUserID = rs.getInt("toUserID");
+                int toGroupID = rs.getInt("toGroupID");
+                Timestamp timeSent = rs.getTimestamp("timeSent");
+
+                System.out.println(msgID + "        " + fromID + "      " + messageBody + "     " + toUserID
+                        + "        " + toGroupID + "       " + timeSent.toString());
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 0");
+            System.out.println("Observed: " + count);
+
+            test4 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Get the message recipient table after
+        boolean test5 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM messageRecipient;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("messageRecipient Table AFter Sending Message To Group User Not In");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int userID = rs.getInt("userID");
+
+                System.out.println(msgID + "        " + userID);
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 0");
+            System.out.println("Observed: " + count);
+
+            test5 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Send a message to a group the user is in
+        beSocial.sendMessageToGroup(1, "Test from driver!");
+
+        // Get the message table after
+        boolean test6 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM message;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Message Table Before Sending Message To Group User Is In");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int fromID = rs.getInt("fromID");
+                String messageBody = rs.getString("messageBody");
+                int toUserID = rs.getInt("toUserID");
+                int toGroupID = rs.getInt("toGroupID");
+                Timestamp timeSent = rs.getTimestamp("timeSent");
+
+                System.out.println(msgID + "        " + fromID + "      " + messageBody + "     " + toUserID
+                        + "        " + toGroupID + "       " + timeSent.toString());
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 3");
+            System.out.println("Observed: " + count);
+
+            test6 = (count == 3);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Get the message recipient table after
+        boolean test7 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM messageRecipient;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("messageRecipient Table AFter Sending Message To Group User Is In");
+            System.out.println("---------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int msgID = rs.getInt("msgID");
+                int userID = rs.getInt("userID");
+
+                System.out.println(msgID + "        " + userID);
+
+                count++;
+            }
+            System.out.println("---------------------------------------------");
+
+            System.out.println("Expected: 3");
+            System.out.println("Observed: " + count);
+
+            test7 = (count == 3);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        if (test1 && test2 && test3 && test4 && test5 && test6 && test7) {
+            System.out.println("Test Send Message To Group Group Passed");
+        } else {
+            System.out.println("Test Send Message To Group Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
+            System.out.println("Test 5: " + test5);
+            System.out.println("Test 6: " + test6);
+            System.out.println("Test 7: " + test7);
+        }
+
+        // Logout
+        beSocial.logout();
     }
 
     private static void testSendMessageToUser() {
@@ -552,7 +795,7 @@ public class Driver {
             System.out.println("Error getting current time");
             return;
         }
-        
+
         String expectedMsgRow = "0, 1, Hello, this is a test message., 2, 0, " + curTime.toString();
         String expectedMsgRecRow = "0, 2";
 
@@ -609,7 +852,7 @@ public class Driver {
         System.setOut(ps);
 
         beSocial.sendMessageToUser("Hello, this is a test message.", 0);
-        
+
         System.out.flush();
         System.setOut(old);
 
@@ -622,6 +865,8 @@ public class Driver {
         } else {
             System.out.println("Test Send Message To User Does Not Work!");
         }
+
+        
 
         beSocial.logout();
     }
@@ -648,9 +893,11 @@ public class Driver {
         System.out.println("---------------------------------------");
         beSocial.searchForProfile("@");
         System.out.println("---------------------------------------");
-        
-        // Now choose two words, each one for a different user and show that the result is a union
-        System.out.println("Search using two words, since theres only one Kenny and one Swift, should return two userIDs");
+
+        // Now choose two words, each one for a different user and show that the result
+        // is a union
+        System.out.println(
+                "Search using two words, since theres only one Kenny and one Swift, should return two userIDs");
         System.out.println("---------------------------------------");
         beSocial.searchForProfile("Kenny Swift");
         System.out.println("---------------------------------------");
@@ -756,7 +1003,7 @@ public class Driver {
         // Log in to user 2 who is in group 0
         beSocial.logout();
         beSocial.login(user2.name, user2.password);
-    
+
         // Show group 0 before user 2 leaves
         boolean test3 = false;
         try {
@@ -824,7 +1071,8 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Now show pending groupRequests for that group and show that the user who was added had their pending
+        // Now show pending groupRequests for that group and show that the user who was
+        // added had their pending
         // entry removed
         boolean test7 = false;
         try {
@@ -962,17 +1210,19 @@ public class Driver {
         // Log into user from createGroup test
         beSocial.login(user1.name, user1.password);
 
-        // Try and accept members from group 0 with a size of 2 to show that it won't go over group limit
+        // Try and accept members from group 0 with a size of 2 to show that it won't go
+        // over group limit
         List<List<Integer>> usersChosen = new LinkedList<>();
         usersChosen.add(Arrays.asList(0, 2));
         usersChosen.add(Arrays.asList(0, 3));
         usersChosen.add(Arrays.asList(0, 4));
-        
+
         beSocial.confirmGroupMembership(1, usersChosen);
 
         System.out.println("There should be two error messages saying cannot exceed max group size");
 
-        // Show pending group members for group 0 to show that the users who were accepted but group is full won't be removed
+        // Show pending group members for group 0 to show that the users who were
+        // accepted but group is full won't be removed
         boolean test2 = false;
         try {
             Statement st = conn.createStatement();
@@ -1034,7 +1284,8 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Show that the accepted members are no longer in the pendinggroupmember table but are in groupmember table as members
+        // Show that the accepted members are no longer in the pendinggroupmember table
+        // but are in groupmember table as members
         try {
             Statement st = conn.createStatement();
             String query = "SELECT * FROM groupMember WHERE role='member';";
@@ -1099,7 +1350,7 @@ public class Driver {
             System.out.println("Failed to remove pendingGroupMember");
             return;
         }
-        
+
         baos = new ByteArrayOutputStream();
         ps = new PrintStream(baos);
         old = System.out;
@@ -1163,10 +1414,12 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Send a request to group 0, with body of "Hello, I would like to join your group!"
+        // Send a request to group 0, with body of "Hello, I would like to join your
+        // group!"
         beSocial.initiateAddingGroup(0, "Hello, I would like to join your group!");
 
-        // Show that there is one entry in pendinggroupmember for group 0 with user id and message
+        // Show that there is one entry in pendinggroupmember for group 0 with user id
+        // and message
         boolean test2 = false;
         boolean test5 = false;
         try {
@@ -1235,7 +1488,8 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Try joining a group that does not exist and show that it will not change pendinggroupmember table
+        // Try joining a group that does not exist and show that it will not change
+        // pendinggroupmember table
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
         PrintStream old = System.out;
@@ -1262,7 +1516,7 @@ public class Driver {
                 int gID = rs.getInt("gID");
                 int userID = rs.getInt("userID");
                 String requestText = rs.getString("requestText");
-        
+
                 Timestamp requestTime = rs.getTimestamp("requestTime");
 
                 System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
@@ -1340,71 +1594,71 @@ public class Driver {
     }
 
     // Nick
-   private static void testCreateGroup()  {
-    // Login to random user, doesn't matter
+    private static void testCreateGroup() {
+        // Login to random user, doesn't matter
 
-    // only login user if they are not logged in
-    if (BeSocial.userID == -1) {
-        beSocial.login(user1.name, user1.password);
-    }
-
-    // drop the tables first (if any):
-    try {
-        Statement st = conn.createStatement();
-        String deleteQuery = "DELETE FROM groupInfo";
-        st.executeUpdate(deleteQuery);
-        String query = "SELECT * FROM groupInfo";
-        ResultSet rs = st.executeQuery(query);
-        if (!rs.next()) {
-            System.out.println("Group info is empty");
+        // only login user if they are not logged in
+        if (BeSocial.userID == -1) {
+            beSocial.login(user1.name, user1.password);
         }
-        st.close();
-    } catch (SQLException e) {
-        System.out.println(e);
-        return;
-    }
-    // Create a group with a name and description
-    System.out.println("Creating three new groups...");
-    beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
-    beSocial.createGroup("Test Group 2", "This is a test group description #2", null); //test default value 10
-    beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
-    // Print groupInfo to show that three groups have been created
-    try {
-        Statement st = conn.createStatement();
-        String query = "SELECT COUNT(*) FROM groupInfo;";
-        ResultSet rs = st.executeQuery(query);
-        rs.next();
-        int count = rs.getInt(1);
-        System.out.println("Number of groups created: " + count);
-        st.close();
-    } catch (SQLException e) {
-        System.out.println(e);
-        return;
-    }
 
-    // displaying newly created groupInfo
-
-    try {
-        Statement st = conn.createStatement();
-        String query = "SELECT * FROM groupInfo;";
-        ResultSet rs = st.executeQuery(query);
-        while (rs.next()) {
-            System.out.println("Group ID: " + rs.getInt(1));
-            System.out.println("Group Name: " + rs.getString(2));
-            System.out.println("Group Size: " + rs.getInt(3));
-            System.out.println("Group Description: " + rs.getString(4));
+        // drop the tables first (if any):
+        try {
+            Statement st = conn.createStatement();
+            String deleteQuery = "DELETE FROM groupInfo";
+            st.executeUpdate(deleteQuery);
+            String query = "SELECT * FROM groupInfo";
+            ResultSet rs = st.executeQuery(query);
+            if (!rs.next()) {
+                System.out.println("Group info is empty");
+            }
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
         }
-        st.close();
-    } catch (SQLException e) {
-        System.out.println(e);
-        return;
-    }
+        // Create a group with a name and description
+        System.out.println("Creating three new groups...");
+        beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
+        beSocial.createGroup("Test Group 2", "This is a test group description #2", null); // test default value 10
+        beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
+        // Print groupInfo to show that three groups have been created
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT COUNT(*) FROM groupInfo;";
+            ResultSet rs = st.executeQuery(query);
+            rs.next();
+            int count = rs.getInt(1);
+            System.out.println("Number of groups created: " + count);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
+        }
 
-    // If all this is good, the test passed
-    System.out.println("testCreateGroups passed!");
-    // Logout of user
-    beSocial.logout();
-}
+        // displaying newly created groupInfo
+
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupInfo;";
+            ResultSet rs = st.executeQuery(query);
+            while (rs.next()) {
+                System.out.println("Group ID: " + rs.getInt(1));
+                System.out.println("Group Name: " + rs.getString(2));
+                System.out.println("Group Size: " + rs.getInt(3));
+                System.out.println("Group Description: " + rs.getString(4));
+            }
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
+        }
+
+        // If all this is good, the test passed
+        System.out.println("testCreateGroups passed!");
+        // Logout of user
+        beSocial.logout();
+    }
 
     // Steven
     private static void testConfirmFriendRequests() {
@@ -1464,7 +1718,8 @@ public class Driver {
                 Date JDate = rs.getDate("JDate");
                 String requestText = rs.getString("requestText");
 
-                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+                System.out
+                        .println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
 
                 count++;
             }
@@ -1498,7 +1753,8 @@ public class Driver {
                 Date JDate = rs.getDate("JDate");
                 String requestText = rs.getString("requestText");
 
-                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+                System.out
+                        .println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
 
                 count++;
             }
@@ -1539,7 +1795,7 @@ public class Driver {
         } catch (SQLException e) {
             System.out.println("Exception occurred in testConfirmFriendRequest");
         }
-        
+
         // Add 2 friend requests and show they are there
         beSocial.logout();
         beSocial.login(user1.name, user1.password);
@@ -1598,7 +1854,8 @@ public class Driver {
                 Date JDate = rs.getDate("JDate");
                 String requestText = rs.getString("requestText");
 
-                System.out.println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
+                System.out
+                        .println(userID1 + "      " + userID2 + "     " + JDate.toString() + "        " + requestText);
 
                 count++;
             }
@@ -1658,7 +1915,8 @@ public class Driver {
         System.out.println(output);
         boolean test8 = output.contains("No Pending Friend Requests");
 
-        // Show that trying to accept a request from a user that did not request to be your friend doesn't work
+        // Show that trying to accept a request from a user that did not request to be
+        // your friend doesn't work
         beSocial.logout();
         beSocial.login(user1.name, user1.password);
         beSocial.initiateFriendship(2);
@@ -1706,7 +1964,8 @@ public class Driver {
         // Login to user 4
         beSocial.login(user4.name, user4.password);
 
-        // Try sending friend request from user 4 to user 4 to show it doesn't work (should show error message)
+        // Try sending friend request from user 4 to user 4 to show it doesn't work
+        // (should show error message)
         System.out.println("Trying to send friend request to self:");
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1751,11 +2010,12 @@ public class Driver {
         } catch (SQLException e) {
             System.out.println("Exception occurred in testConfirmFriendRequest");
         }
-        
+
         // Send friend request to user 2 from user 1
         beSocial.initiateFriendship(2);
-    
-        // Query the database for the friendship and show that there is a pendingFriend record in the table
+
+        // Query the database for the friendship and show that there is a pendingFriend
+        // record in the table
         // From user 2 to user 1
         boolean test3 = false;
         boolean test4 = false;
@@ -1787,8 +2047,9 @@ public class Driver {
         } catch (SQLException e) {
             System.out.println("Exception occurred in testConfirmFriendRequest");
         }
-    
-        // If the request is present and matches to user 1, return true, else return false
+
+        // If the request is present and matches to user 1, return true, else return
+        // false
         if (test1 && test2 && test3 && test4) {
             System.out.println("Initiate Friendship Test Passed");
         } else {
@@ -1806,7 +2067,8 @@ public class Driver {
     // Nick
     private static void testLogin() {
         // Start by calling logout for pure isolation
-        // !ONLY LOGOUT IF USER IS LOGGED IN (to prevent error message 'User is not logged in')
+        // !ONLY LOGOUT IF USER IS LOGGED IN (to prevent error message 'User is not
+        // logged in')
         if (BeSocial.userID != -1) {
             beSocial.logout();
         }
@@ -1828,7 +2090,6 @@ public class Driver {
         // Print the userID now, should be -1
         System.out.println("User ID After Login With Invalid Credentials " + BeSocial.userID);
         System.out.println("Login test completed\n\n");
-
 
         // ! EXPECTED OUTPUT
         System.out.println("Expected Output: \n\n");
@@ -1890,7 +2151,8 @@ public class Driver {
                 String userEmail = rs.getString("email");
                 String userDOB = rs.getString("date_of_birth");
                 Timestamp lastLogin = rs.getTimestamp("lastlogin");
-                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     " + userDOB + "     " + lastLogin.toString());
+                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     "
+                        + userDOB + "     " + lastLogin.toString());
             }
             System.out.println("--------------------------------------------------------------");
         } catch (SQLException e) {
@@ -1922,7 +2184,8 @@ public class Driver {
                 String userDOB = rs.getString("date_of_birth");
                 Timestamp lastLogin = rs.getTimestamp("lastlogin");
 
-                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     " + userDOB + "     " + lastLogin.toString());
+                System.out.println(userID + "     " + userName + "     " + userPassword + "     " + userEmail + "     "
+                        + userDOB + "     " + lastLogin.toString());
 
                 if (!userList[count].name.equals(userName) || !userList[count].password.equals(userPassword)
                         || !userList[count].email.equals(userEmail) || !userList[count].dob.equals(userDOB)) {
