@@ -266,7 +266,13 @@ public class BeSocial {
                         beSocial.rankProfiles();
                         break;
                     case 18:
-                        beSocial.topMessages();
+                        System.out.print("Enter the number of months you want the search to go back: ");
+                        int x = sc.nextInt();
+                        sc.nextLine();
+                        System.out.print("Enter the top k message senders you would like to see: ");
+                        int k = sc.nextInt();
+                        sc.nextLine();
+                        beSocial.topMessages(x, k);
                         break;
                     case 19:
                         System.out.println("Enter the user ID of the user you want to find a relationship with:");
@@ -730,7 +736,7 @@ public class BeSocial {
             res.next();
             int gID = res.getInt("max_gID");
             if (res.wasNull()) {
-                gID = 0;
+                gID = 1;
             } else {
                 gID += 1;
             }
@@ -1428,7 +1434,8 @@ public class BeSocial {
                 int groupID = rs.getInt("groupID");
                 int toID = rs.getInt("toID");
 
-                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tTo ID: %d\tGroup ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tTo ID: %d\tGroup ID: %d\tSent at: %s\n%s\n\n",
+                        i++, msgID, fromID,
                         toID, groupID, t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
@@ -1461,13 +1468,16 @@ public class BeSocial {
             int i = 1;
             do {
                 // Print formatted message
-                String message = rs.getString(2);
-                int msgID = rs.getInt(1);
-                Timestamp t = rs.getTimestamp(3);
-                int fromID = rs.getInt(4);
+                String message = rs.getString("messageBody");
+                int msgID = rs.getInt("msgID");
+                Timestamp t = rs.getTimestamp("timeSent");
+                int fromID = rs.getInt("fromID");
+                int groupID = rs.getInt("groupID");
+                int toID = rs.getInt("toID");
 
-                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tSent at: %s\n%s\n\n", i++, msgID, fromID,
-                        t.toString(), message);
+                System.out.printf("%d.\nMessage ID: %d\t\tFrom ID: %d\tTo ID: %d\tGroup ID: %d\tSent at: %s\n%s\n\n",
+                        i++, msgID, fromID,
+                        toID, groupID, t.toString(), message);
             } while (rs.next());
         } catch (SQLException e) {
             System.out.println("Error retrieving messages.");
@@ -1623,13 +1633,7 @@ public class BeSocial {
     // * the current date of the Clock table. Group messages do not need to be
     // considered in this
     // * function.
-    public void topMessages() {
-        System.out.print("Enter the number of months you want the search to go back: ");
-        int x = sc.nextInt();
-        sc.nextLine();
-        System.out.print("Enter the top k message senders you would like to see: ");
-        int k = sc.nextInt();
-        sc.nextLine();
+    public void topMessages(int x, int k) {
 
         try {
             PreparedStatement p = conn.prepareStatement("SELECT * FROM topMessages(?, ?, ?);");

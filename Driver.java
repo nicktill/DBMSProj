@@ -431,10 +431,124 @@ public class Driver {
 
     // TODO
     private static void testTopMessages() {
-        // Assumptions: sendMessagetoUser/Group has been run before
+        // Login a user with no messages sent to them
+        // Should: No users have sent messages to you
+        beSocial.login(user5.name, user5.password);
+        beSocial.topMessages(1, 4);
 
-        //
-        System.out.println("Test Top Messages Not Implemented");
+        // Logout
+        beSocial.logout();
+
+        beSocial.login("admin", "admin");
+
+        try {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO friend VALUES (0, 4, '2022-01-01');INSERT INTO friend VALUES (0, 2, '2022-01-01');INSERT INTO friend VALUES (0, 3, '2022-01-01');");
+            ps.execute();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        beSocial.sendMessageToUser("TESTAH", 4);
+
+
+        beSocial.topMessages(1, 4);
+
+        System.out.println("Rank should be user 1 with four messages, and then user 4 with 1 message ^");
+        beSocial.logout();
+
+        // Send admin 2 messages from user 2
+        beSocial.login(user2.name, user2.password);
+        beSocial.sendMessageToUser("From user 2 1", 0);
+        beSocial.sendMessageToUser("From user 2 2", 0);
+        beSocial.logout();
+        // Send admin 3 messages from user 3
+        beSocial.login(user3.name, user3.password);
+        beSocial.sendMessageToUser("From user 3 1", 0);
+        beSocial.sendMessageToUser("From user 3 2", 0);
+        beSocial.sendMessageToUser("From user 3 3", 0);
+        beSocial.logout();
+
+        // Get top 4 for messages should be user1, user 3, user 2, user 4
+        beSocial.login("admin", "admin");
+        beSocial.topMessages(1, 4);
+        System.out.println("Rank should be user 1 with four messages, user 3 with 3 messages, user 2 with 2 messages, and then user 4 with 1 message ^");
+        
+        // Get the top 2 for messages should be user1 and user 2
+        beSocial.topMessages(1, 2);
+        System.out.println("Rank should be user 1 with four messages, user 3 with 3 messages");
+        
+        // Get the top message for admin should be user1
+        beSocial.topMessages(1, 1);
+        System.out.println("Only user 1 should be shown");
+
+        beSocial.logout();
+
+        // Send three messages to admin from user 2 dated two months ago
+        beSocial.login(user3.name, user3.password);
+
+        // Set time back two months
+        // Get the current time
+        Timestamp curTime;
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT pseudo_time FROM clock;");
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            curTime = rs.getTimestamp("pseudo_time");
+        } catch (SQLException e) {
+            System.out.println("Error getting current time");
+            return;
+        }
+
+        ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
+        Timestamp newTimestamp = Timestamp.from(zonedDateTime.minus(60, ChronoUnit.DAYS).toInstant());
+        try {
+            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time= '" + newTimestamp.toString() + "';");
+
+            s.execute();
+        } catch (SQLException e) {
+            System.out.println("Error setting current time");
+            return;
+        }
+
+        // Send message
+        beSocial.sendMessageToUser("HELLO FROM PAST USER 3 1", 0);
+        beSocial.sendMessageToUser("HELLO FROM PAST USER 3 2", 0);
+
+        beSocial.logout();
+
+        // Set time back to present
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT pseudo_time FROM clock;");
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            curTime = rs.getTimestamp("pseudo_time");
+        } catch (SQLException e) {
+            System.out.println("Error getting current time");
+            return;
+        }
+
+        zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
+        newTimestamp = Timestamp.from(zonedDateTime.plus(60, ChronoUnit.DAYS).toInstant());
+        try {
+            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time= '" + newTimestamp.toString() + "';");
+
+            s.execute();
+        } catch (SQLException e) {
+            System.out.println("Error setting current time");
+            return;
+        }
+
+        // Get topmessages for admin going back two months, order should not be user 2 user 1 user 3 user 4
+        beSocial.login("admin", "admin");
+        beSocial.topMessages(2, 4);
+        System.out.println("Going back two months should change the order putting user 3 above user 1");
+
+        // Show that showing messages from more users than exists wont work
+        System.out.println("Show that the same amount of users get printed out if we try and get top 10");
+        beSocial.topMessages(2, 10);
+
+        // Logout
+        beSocial.logout();
     }
 
     // TODO
@@ -517,7 +631,6 @@ public class Driver {
 
     private static void testDisplayNewMessages() {
         // log out and log in to user1
-        beSocial.logout(); 
         beSocial.login(user1.name, user1.password);
 
         // Get the current time
@@ -552,8 +665,6 @@ public class Driver {
         // log out and log in to user2
         beSocial.logout();
         beSocial.login(user2.name, user2.password);
-
-
 
         // Now display new messages
         beSocial.displayNewMessages();
@@ -705,7 +816,7 @@ public class Driver {
         PrintStream old = System.out;
         System.setOut(ps);
 
-        beSocial.sendMessageToGroup(0, "Test from driver!");
+        beSocial.sendMessageToGroup(1, "Test from driver!");
 
         System.out.flush();
         System.setOut(old);
@@ -776,7 +887,7 @@ public class Driver {
         }
 
         // Send a message to a group the user is in
-        beSocial.sendMessageToGroup(1, "Test from driver!");
+        beSocial.sendMessageToGroup(3, "Test from driver!");
 
         // Get the message table after
         boolean test6 = false;
@@ -785,7 +896,7 @@ public class Driver {
             String query = "SELECT * FROM message;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("Message Table Before Sending Message To Group User Is In");
+            System.out.println("Message Table After Sending Message To Group User Is In");
             System.out.println("---------------------------------------------");
             int count = 0;
             while (rs.next()) {
@@ -818,7 +929,7 @@ public class Driver {
             String query = "SELECT * FROM messageRecipient;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("messageRecipient Table AFter Sending Message To Group User Is In");
+            System.out.println("messageRecipient Table After Sending Message To Group User Is In");
             System.out.println("---------------------------------------------");
             int count = 0;
             while (rs.next()) {
@@ -992,10 +1103,10 @@ public class Driver {
         boolean test1 = false;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM groupMember where gID=2;";
+            String query = "SELECT * FROM groupMember where gID=3;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("Printing group members from group 2 before removal:");
+            System.out.println("Printing group members from group 3 before removal:");
             System.out.println("----------------------------------------------------");
             int count = 0;
             while (rs.next()) {
@@ -1050,7 +1161,7 @@ public class Driver {
         }
 
         // Try and join group 0 which should be full
-        beSocial.initiateAddingGroup(0, "");
+        beSocial.initiateAddingGroup(1, "");
 
         boolean test6 = false;
         try {
@@ -1080,18 +1191,18 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Log in to user 2 who is in group 0
+        // Log in to user 2 who is in group 1
         beSocial.logout();
         beSocial.login(user2.name, user2.password);
 
-        // Show group 0 before user 2 leaves
+        // Show group 1 before user 2 leaves
         boolean test3 = false;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM groupMember where gID=0;";
+            String query = "SELECT * FROM groupMember where gID=1;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("Displaying group 0 before user 2 leaves:");
+            System.out.println("Displaying group 1 before user 2 leaves:");
             System.out.println("----------------------------------------------------");
             int count = 0;
             while (rs.next()) {
@@ -1114,7 +1225,7 @@ public class Driver {
         }
 
         // Have user 2 leave group 0
-        beSocial.leaveGroup(0);
+        beSocial.leaveGroup(1);
 
         // Query for groupMembers in that group and show that the previous member
         // has left but a new member (user 4) filled that whole
@@ -1122,10 +1233,10 @@ public class Driver {
         boolean test5 = false;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM groupMember where gID=0;";
+            String query = "SELECT * FROM groupMember where gID=1;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("Displaying group 0 after user 2 leaves:");
+            System.out.println("Displaying group 1 after user 2 leaves:");
             System.out.println("----------------------------------------------------");
 
             int count = 0;
@@ -1188,7 +1299,7 @@ public class Driver {
         PrintStream old = System.out;
         System.setOut(ps);
 
-        beSocial.leaveGroup(0);
+        beSocial.leaveGroup(1);
 
         System.out.flush();
         System.setOut(old);
@@ -1241,21 +1352,21 @@ public class Driver {
         // Add some table requests
 
         beSocial.login(user2.name, user2.password);
-        beSocial.initiateAddingGroup(0, "");
         beSocial.initiateAddingGroup(1, "");
         beSocial.initiateAddingGroup(2, "");
+        beSocial.initiateAddingGroup(3, "");
         beSocial.logout();
 
         beSocial.login(user3.name, user3.password);
-        beSocial.initiateAddingGroup(0, "");
         beSocial.initiateAddingGroup(1, "");
         beSocial.initiateAddingGroup(2, "");
+        beSocial.initiateAddingGroup(3, "");
         beSocial.logout();
 
         beSocial.login(user4.name, user4.password);
-        beSocial.initiateAddingGroup(0, "");
         beSocial.initiateAddingGroup(1, "");
         beSocial.initiateAddingGroup(2, "");
+        beSocial.initiateAddingGroup(3, "");
         beSocial.logout();
 
         // Show the pending group member table before
@@ -1293,11 +1404,11 @@ public class Driver {
         // Try and accept members from group 0 with a size of 2 to show that it won't go
         // over group limit
         List<List<Integer>> usersChosen = new LinkedList<>();
-        usersChosen.add(Arrays.asList(0, 2));
-        usersChosen.add(Arrays.asList(0, 3));
-        usersChosen.add(Arrays.asList(0, 4));
+        usersChosen.add(Arrays.asList(1, 2));
+        usersChosen.add(Arrays.asList(1, 3));
+        usersChosen.add(Arrays.asList(1, 4));
 
-        beSocial.confirmGroupMembership(1, usersChosen);
+        beSocial.confirmGroupMembership(2, usersChosen);
 
         System.out.println("There should be two error messages saying cannot exceed max group size");
 
@@ -1494,9 +1605,9 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Send a request to group 0, with body of "Hello, I would like to join your
+        // Send a request to group 1, with body of "Hello, I would like to join your
         // group!"
-        beSocial.initiateAddingGroup(0, "Hello, I would like to join your group!");
+        beSocial.initiateAddingGroup(1, "Hello, I would like to join your group!");
 
         // Show that there is one entry in pendinggroupmember for group 0 with user id
         // and message
@@ -1532,8 +1643,8 @@ public class Driver {
             System.out.println(e);
         }
 
-        // Send a request to group 1 with no body
-        beSocial.initiateAddingGroup(1, "");
+        // Send a request to group 2 with no body
+        beSocial.initiateAddingGroup(2, "");
 
         // Show that there are two entries now, and one has the default message
         boolean test3 = false;
@@ -1645,7 +1756,7 @@ public class Driver {
         old = System.out;
         System.setOut(ps);
 
-        beSocial.initiateAddingGroup(0, "");
+        beSocial.initiateAddingGroup(2, "");
 
         System.out.flush();
         System.setOut(old);
@@ -2197,12 +2308,6 @@ public class Driver {
     }
 
     private static void testCreateProfile() {
-        // Test to show that this cannot be done by a non-admin
-        beSocial.login(user1.name, user1.password);
-        beSocial.createProfile("one", "blah@pitt.edu", "1234", "2001-11-26");
-        System.out.println("Previous Line Should Say: This operation can only be performed by an admin");
-        beSocial.logout();
-
         // Log in admin since the method can only be performed by the admin
         beSocial.login("admin", "admin");
 
@@ -2277,6 +2382,11 @@ public class Driver {
             }
 
             System.out.println("----------------------");
+
+            beSocial.login(user1.name, user1.password);
+            beSocial.createProfile("one", "blah@pitt.edu", "1234", "2001-11-26");
+            System.out.println("Previous Line Should Say: This operation can only be performed by an admin");
+            beSocial.logout();
 
             if (count != userList.length) {
                 System.out.println("Profile Table Does Not Match Expected");

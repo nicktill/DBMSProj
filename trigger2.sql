@@ -534,18 +534,18 @@ BEGIN
     RETURN QUERY
         SELECT rec,
                (coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0)) as msgCount,
-               RANK() OVER (ORDER BY msgCount)                       AS rank
+               RANK() OVER (ORDER BY coalesce(CT.msgCount, 0) + coalesce(CF.msgCount, 0) DESC) AS rank
         FROM (SELECT M.fromid AS rec, COUNT(M.msgid) AS msgCount
               FROM message M
               WHERE M.touserid = uID
                 AND M.timesent BETWEEN startDate AND cur_time
               GROUP BY rec) CT
-                 NATURAL FULL OUTER JOIN (SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
-                                          FROM message M
-                                          WHERE M.fromid = uID
-                                            AND M.timesent BETWEEN startDate AND cur_time
-                                            AND M.touserid IS NOT NULL
-                                          GROUP BY rec) CF
+                 FULL OUTER JOIN (SELECT M.touserid AS rec, COUNT(M.msgid) AS msgCount
+                                  FROM message M
+                                  WHERE M.fromid = uID
+                                    AND M.timesent BETWEEN startDate AND cur_time
+                                    AND M.touserid IS NOT NULL
+                                  GROUP BY rec) CF USING (rec)
         ORDER BY rank
             FETCH FIRST topMessages.k ROWS ONLY;
 end;
