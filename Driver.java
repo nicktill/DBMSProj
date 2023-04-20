@@ -525,11 +525,42 @@ public class Driver {
 
     // Nick
     private static void testLeaveGroup() {
-        System.out.println("Test Leave Group Not Implemented");
+        // Log in to a user that is in a group
+
+        //logout user if they are loggedi n 
+        if (beSocial.userID != -1) {
+            beSocial.logout();
+      }
+        beSocial.login(user1.name, user1.password);
+
         // Query the DB for the filled group and show it's group members
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupInfo WHERE gid = 0;";
+            st.executeQuery(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
+        }
+
+        // Leave the group
+        beSocial.leaveGroup(3);
+
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupInfo WHERE gid = 0;";
+            st.executeQuery(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+            return;
+        }
+        
+        // ! na how tf do u do this shit from here
 
         // Log in to one user in that group
-
+    
         // Have that user leave that specified group
 
         // Query for groupMembers in that group and show that the previous member
