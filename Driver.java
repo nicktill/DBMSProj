@@ -493,20 +493,69 @@ public class Driver {
     private static void testSendMessageToUser() {
         // Log in to a user
         beSocial.logout();
-        beSocial.login("admin", "admin");
+        beSocial.login(user1.name, user1.password);
 
         // Send a message to another user
-        // TODO: Make sure they are a friend
         System.out.println("Test send a message to a friend");
         beSocial.sendMessageToUser("Hello, this is a test message.", 2);
 
-        // TODO: Show that the row has changed
         // Access the database to show that the message was successfully sent
-        int newMessageID = -1;
+        Timestamp curTime;
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM clock;");
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            curTime = rs.getTimestamp(1);
+        } catch (SQLException e) {
+            System.out.println("Error getting current time");
+            return;
+        }
+        
+        String expectedMsgRow = "0, 1, Hello, this is a test message., 2, 0 (NULL), " + curTime.toString();
+        String expectedMsgRecRow = "0, 2";
+
+        String obMsgRow, obMsgRecRow;
+        try {
+            PreparedStatement ps = conn.prepareStatement("SELECT * FROM message WHERE msgid=0;");
+            PreparedStatement ps2 = conn.prepareStatement("SELECT * FROM messagerecipient WHERE msgid=0;");
+            ResultSet r1 = ps.executeQuery();
+            ResultSet r2 = ps2.executeQuery();
+
+            r1.next();
+            r2.next();
+
+            // Get the observed row
+            int mid = r1.getInt(1);
+            int fromID = r1.getInt(2);
+            String msg = r1.getString(3);
+            int toID = r1.getInt(4);
+            Integer gID = r1.getInt(5);
+            Timestamp time = r1.getTimestamp(6);
+            obMsgRow = mid + ", " + fromID + ", " + msg + ", " + toID + ", " + gID + ", " + time.toString();
+
+            mid = r2.getInt(1);
+            toID = r2.getInt(2);
+            obMsgRecRow = mid + ", " + toID;
+
+        } catch (SQLException e) {
+            System.out.println("Error getting data after message send");
+            return;
+        }
+
+        System.out.println("Expected message and message recipient insertions");
+        System.out.println("-----------------------------------------------------");
+        System.out.println(expectedMsgRow + "\n" + expectedMsgRecRow);
+        System.out.println("-----------------------------------------------------\n");
+
+        System.out.println("Observed message and message recipient insertions");
+        System.out.println("-----------------------------------------------------");
+        System.out.println(obMsgRow + "\n" + obMsgRecRow);
+        System.out.println("-----------------------------------------------------");
 
         // Send message to a user that does not exist/bad send
         System.out.println("Test send a message that is not allowed.\nUser sends a message to themselves");
         beSocial.sendMessageToUser("Hello, this is a test message.", 0);
+        // Should get an error print out from the function
     }
 
     // TODO
