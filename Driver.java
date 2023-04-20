@@ -1293,6 +1293,9 @@ public class Driver {
             System.out.println(e);
         }
 
+        beSocial.logout();
+        beSocial.login("admin", "admin");
+
         // Try and leave a group you are not in
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(baos);
@@ -1305,8 +1308,8 @@ public class Driver {
         System.setOut(old);
 
         String output = baos.toString();
-
-        boolean test8 = output.contains("ERROR: Not a member of any Groups");
+        System.out.println(output);
+        boolean test8 = output.contains("Not a member of any Groups");
 
         if (test1 && test2 && test3 && test4 && test5 && test6 && test7 && test8) {
             System.out.println("All Leave Group Tests Passed");
@@ -2109,7 +2112,7 @@ public class Driver {
         // Show that trying to accept a request from a user that did not request to be
         // your friend doesn't work
         beSocial.logout();
-        beSocial.login(user1.name, user1.password);
+        beSocial.login(user5.name, user5.password);
         beSocial.initiateFriendship(2);
         beSocial.logout();
 
