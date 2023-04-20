@@ -555,13 +555,14 @@ public class Driver {
             while (rs.next()) {
                 int gID = rs.getInt("gID");
                 int userID = rs.getInt("userID");
-                String requestText = rs.getString("resultText");
+                String requestText = rs.getString("requestText");
                 if (!test5 && requestText.contains("Hello, I would like to join your group!")) {
                     test5 = true;
                 }
                 Timestamp requestTime = rs.getTimestamp("requestTime");
 
                 System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
             }
             System.out.println("----------------------------------------------");
 
@@ -584,19 +585,20 @@ public class Driver {
             String query = "SELECT * FROM pendingGroupMember;";
             ResultSet rs = st.executeQuery(query);
 
-            System.out.println("Printing pendingGroupMember table after requesting to join");
+            System.out.println("Printing pendingGroupMember table after requesting to join with no message");
             System.out.println("----------------------------------------------");
             int count = 0;
             while (rs.next()) {
                 int gID = rs.getInt("gID");
                 int userID = rs.getInt("userID");
-                String requestText = rs.getString("resultText");
+                String requestText = rs.getString("requestText");
                 if (!test4 && requestText.contains("I would like to join your group! :)")) {
                     test4 = true;
                 }
                 Timestamp requestTime = rs.getTimestamp("requestTime");
 
                 System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
             }
             System.out.println("----------------------------------------------");
 
@@ -620,6 +622,7 @@ public class Driver {
         System.setOut(old);
 
         String output = baos.toString();
+        System.out.println(output);
         boolean test6 = output.contains("The group you tried to join does not exist");
         boolean test7 = false;
         try {
@@ -633,11 +636,12 @@ public class Driver {
             while (rs.next()) {
                 int gID = rs.getInt("gID");
                 int userID = rs.getInt("userID");
-                String requestText = rs.getString("resultText");
+                String requestText = rs.getString("requestText");
         
                 Timestamp requestTime = rs.getTimestamp("requestTime");
 
                 System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
             }
             System.out.println("----------------------------------------------");
 
@@ -673,6 +677,7 @@ public class Driver {
 
         output = baos.toString();
 
+        System.out.println(output);
         boolean test8 = output.contains("You are already in this group");
 
         // Try joining a group we already requested to join
@@ -691,9 +696,9 @@ public class Driver {
         boolean test9 = output.contains("You already tried to join this group");
 
         if (test1 && test2 && test3 && test4 && test5 && test6 && test7 && test8 && test9) {
-            System.out.println("Confirm Friend Request Passed");
+            System.out.println("Test Initiate Adding Group Passed");
         } else {
-            System.out.println("Test Confirm Friend Request Failed");
+            System.out.println("Test Initiate Adding Group Failed");
             System.out.println("Test 1: " + test1);
             System.out.println("Test 2: " + test2);
             System.out.println("Test 3: " + test3);
@@ -737,7 +742,7 @@ public class Driver {
     System.out.println("Creating three new groups...");
     try{
         beSocial.createGroup("Test Group 1", "This is a test group", 10);
-        beSocial.createGroup("Test Group 2", "This is a test group", 15);
+        beSocial.createGroup("Test Group 2", "This is a test group", 2);
         beSocial.createGroup("Test Group 3", "This is a test group", 17);
     }
     catch (SQLException e) {
