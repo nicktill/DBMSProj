@@ -98,7 +98,12 @@ public class BeSocial {
                 beSocial.displayMenu(isLoggedIn);
 
                 System.out.println("Choose an option from the menu: ");
-                userInput = Integer.parseInt(sc.nextLine());
+                try{
+                    userInput = Integer.parseInt(sc.nextLine());
+                } catch (Exception e) {
+                    System.out.println("Invalid input. Please enter a number from the menu");
+                    continue;
+                }
                 // Validate user input based on logged in status
                 // If the option they selected is invalid, print statement and continue to next
                 // loop
@@ -224,7 +229,11 @@ public class BeSocial {
                         beSocial.confirmGroupMembership(-1, null);
                         break;
                     case 9:
-                        beSocial.leaveGroup();
+                        int groupToLeave = -1; // The group ID to leave
+                        System.out.print("Enter the group ID which you would like to leave: ");
+                        groupToLeave = sc.nextInt();
+                        sc.nextLine(); // Clear the buffer
+                        beSocial.leaveGroup(groupToLeave);
                         break;
                     case 10:
                         beSocial.searchForProfile();
@@ -1082,9 +1091,8 @@ public class BeSocial {
     // * In the event that the user is not a member of the specified group, a
     // message Not a Member
     // * of any Groups should be displayed to the user.
-    public void leaveGroup() {
+    public void leaveGroup(int groupToLeave) {
         // Prompt the user to enter the group they would like to leave
-        int groupToLeave = -1;
         try {
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT * FROM groupMember WHERE userID=" + userID + ";");
@@ -1098,10 +1106,7 @@ public class BeSocial {
                 System.out.println("Not a member of any Groups.");
                 return;
             }
-
-            System.out.print("Enter the group ID which you would like to leave: ");
-            groupToLeave = sc.nextInt();
-            sc.nextLine(); // Clear the buffer
+           
         } catch (SQLException e) {
             printErrors(e);
         }
