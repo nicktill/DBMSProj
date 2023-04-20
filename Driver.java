@@ -603,8 +603,27 @@ public class Driver {
 
         // Send message to a user that does not exist/bad send
         System.out.println("Test send a message that is not allowed. User sends a message to themselves");
-        beSocial.sendMessageToUser("Hello, this is a test message.", 0);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
 
+        beSocial.sendMessageToUser("Hello, this is a test message.", 0);
+        
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+
+        System.out.println(output);
+
+        if (output.contains("You are not friends with this user or they do not exist.")) {
+            System.out.println("Test Send Message To User Works");
+        } else {
+            System.out.println("Test Send Message To User Does Not Work!");
+        }
+
+        beSocial.logout();
     }
 
     // TODO
@@ -623,49 +642,232 @@ public class Driver {
 
     // Nick
     private static void testLeaveGroup() {
-        // Log in to a user that is in a group
+        // Log in to a user that is in a group that is not full (group id 1)
+        beSocial.login(user4.name, user4.password);
 
-        //logout user if they are loggedi n 
-        if (BeSocial.userID != -1) {
-            beSocial.logout();
-      }
-        beSocial.login(user1.name, user1.password);
-
-        // Query the DB for the filled group and show it's group members
+        // Query the DB for group 2 and show it's group members
+        boolean test1 = false;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM groupInfo WHERE gid = 0;";
-            st.executeQuery(query);
-            st.close();
+            String query = "SELECT * FROM groupMember where gID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing group members from group 2 before removal:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+
+                System.out.println(gID + "      " + userID + "      " + role + "     " + lastConfirmed.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+
+            System.out.println("Expected number of entries: 4");
+            System.out.println("Actual number of entries: " + count);
+
+            test1 = (count == 4);
         } catch (SQLException e) {
             System.out.println(e);
-            return;
         }
 
         // Leave the group
-        beSocial.leaveGroup(3);
+        beSocial.leaveGroup(2);
 
+        // Query the group again and show that a member was removed
+        boolean test2 = false;
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM groupInfo WHERE gid = 0;";
-            st.executeQuery(query);
-            st.close();
+            String query = "SELECT * FROM groupMember where gID=2;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing group members from group 2 after removal:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+
+                System.out.println(gID + "      " + userID + "      " + role + "     " + lastConfirmed.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------------");
+
+            System.out.println("Expected number of entries: 3");
+            System.out.println("Actual number of entries: " + count);
+
+            test2 = (count == 3);
         } catch (SQLException e) {
             System.out.println(e);
-            return;
         }
-        
-        // ! na how tf do u do this shit from here
 
-        // Log in to one user in that group
+        // Try and join group 0 which should be full
+        beSocial.initiateAddingGroup(0, "");
+
+        boolean test6 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table before test");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 1");
+            System.out.println("Actual number of entries: " + count);
+
+            test6 = (count == 1);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Log in to user 2 who is in group 0
+        beSocial.logout();
+        beSocial.login(user2.name, user2.password);
     
-        // Have that user leave that specified group
+        // Show group 0 before user 2 leaves
+        boolean test3 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupMember where gID=0;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Displaying group 0 before user 2 leaves:");
+            System.out.println("----------------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+
+                System.out.println(gID + "      " + userID + "      " + role + "     " + lastConfirmed.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 2");
+            System.out.println("Actual number of entries: " + count);
+
+            test3 = (count == 2);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Have user 2 leave group 0
+        beSocial.leaveGroup(0);
 
         // Query for groupMembers in that group and show that the previous member
-        // has left but a new member filled that whole
+        // has left but a new member (user 4) filled that whole
+        boolean test4 = false;
+        boolean test5 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupMember where gID=0;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Displaying group 0 after user 2 leaves:");
+            System.out.println("----------------------------------------------------");
+
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                if (!test5 && userID == 4) {
+                    test5 = true;
+                }
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+
+                System.out.println(gID + "      " + userID + "      " + role + "     " + lastConfirmed.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 2");
+            System.out.println("Actual number of entries: " + count);
+
+            test4 = (count == 2);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Now show pending groupRequests for that group and show that the user who was added had their pending
         // entry removed
+        boolean test7 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after removal from full group");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 0");
+            System.out.println("Actual number of entries: " + count);
+
+            test7 = (count == 0);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Try and leave a group you are not in
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.leaveGroup(0);
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+
+        boolean test8 = output.contains("ERROR: Not a member of any Groups");
+
+        if (test1 && test2 && test3 && test4 && test5 && test6 && test7 && test8) {
+            System.out.println("All Leave Group Tests Passed");
+        } else {
+            System.out.println("Test Leave Group Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
+            System.out.println("Test 5: " + test5);
+            System.out.println("Test 6: " + test6);
+            System.out.println("Test 7: " + test7);
+            System.out.println("Test 8: " + test8);
+        }
+
+        beSocial.logout();
     }
 
     private static void testConfirmGroupMembership() {
