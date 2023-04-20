@@ -1630,10 +1630,20 @@ public class Driver {
 
     // TODO
     private static void testDropProfile() {
+        beSocial.login(user1.name, user1.password);
+        beSocial.dropProfile();
+        System.out.println("Previous Line Should Say: This operation can only be performed by an admin");
+        beSocial.logout();
         System.out.println("Test Drop Profile Not Implemented");
     }
 
     private static void testCreateProfile() {
+        // Test to show that this cannot be done by a non-admin
+        beSocial.login(user1.name, user1.password);
+        beSocial.createProfile("one", "blah@pitt.edu", "1234", "2001-11-26");
+        System.out.println("Previous Line Should Say: This operation can only be performed by an admin");
+        beSocial.logout();
+
         // Log in admin since the method can only be performed by the admin
         beSocial.login("admin", "admin");
 
