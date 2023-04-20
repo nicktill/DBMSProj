@@ -485,7 +485,9 @@ public class Driver {
     // TODO
     private static void testDisplayFriends() {
         // create a linkedList 
-        LinkedList <Integer> s = new LinkedList<Integer>();
+        LinkedList <Integer> georgePicken = new LinkedList<Integer>(); 
+        LinkedList <Integer> stevenJarmell = new LinkedList<Integer>(); 
+        
         try {
             PreparedStatement addFriend = conn.prepareStatement("INSERT INTO friend VALUES(1, 3, '2023-04-19', 'hey there bud');");
             addFriend.execute();
@@ -493,22 +495,24 @@ public class Driver {
             System.out.println("Error adding friend");
             return;
         }
-        s.add(2); //this is the specific profileID of the user you want to search
-        s.add(0);
-        
+        georgePicken.add(2); //this is the specific profileID of the user you want to search
+        georgePicken.add(0);
+
+        stevenJarmell.add(2);
+        stevenJarmell.add(0);
         // logout of user
         beSocial.logout(); 
         // login as admin 
-        beSocial.login("admin", "admin");
+        beSocial.login(user5.name, user5.password);
         // display friends of user (should be no friends and should not be prompted to pass the friends for search)
-        beSocial.displayFriends(s); // should display no friends
+        beSocial.displayFriends(georgePicken); // should display no friends
         
         // logout 
         beSocial.logout(); 
         // login as user1 (Steven Jarmell)
         beSocial.login(user1.name, user1.password);
         // display friends passing in 'S' as the search parameter for searching friends
-        beSocial.displayFriends(s); 
+        beSocial.displayFriends(stevenJarmell); // should display 2 friends
     }
 
     private static void testDisplayNewMessages() {
@@ -2152,7 +2156,7 @@ public class Driver {
         System.out.println("Actual Output: \n\n");
         // Print the userID of beSocial, should be -1
         System.out.println("User ID Before Login: " + BeSocial.userID);
-        // Log in user
+        // Log in user 1
         beSocial.login(user1.name, user1.password);
         // Print the userID now, should not be -1
         System.out.println("User ID After Login: " + BeSocial.userID);
