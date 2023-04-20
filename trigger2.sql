@@ -859,7 +859,7 @@ BEGIN
     DELETE FROM pendingfriend WHERE fromID=OLD.userID OR toID=OLD.userID;
     DELETE FROM pendinggroupmember WHERE userID=OLD.userID;
     DELETE FROM message WHERE fromID=OLD.userID OR toUserID=OLD.userID;
-    DELETE FROM messagerecipient WHERE msgID=OLD.userID OR userID=OLD.userID;
+    DELETE FROM messagerecipient WHERE userID=OLD.userID;
     RETURN OLD;
 end;
 $$ LANGUAGE plpgsql;
