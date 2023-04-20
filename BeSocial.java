@@ -917,6 +917,9 @@ public class BeSocial {
                     break;
                 } else if (indexChosen == -2) {
                     break;
+                } else if (indexChosen < -2 || indexChosen > allUsers.size()) {
+                    System.out.println("Not a valid index");
+                    break;
                 } else {
                     numUsersChosen++;
                     Integer[] toAdd = { groupMembershipRequests.get(indexChosen).gID,

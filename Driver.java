@@ -8,6 +8,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -571,24 +574,247 @@ public class Driver {
     }
 
     private static void testConfirmGroupMembership() {
-        // Log into user from createGroup test
+        // Clear the pendingGroupMember table
+        // Delete all entries from pendingGroupMember table
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM pendingGroupMember;";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to remove pendingGroupMember");
+            return;
+        }
+
+        // Delete all entries from groupMember table
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM groupMember WHERE role='member';";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to remove groupMember");
+            return;
+        }
+
+        // Add some table requests
+
+        beSocial.login(user2.name, user2.password);
+        beSocial.initiateAddingGroup(0, "");
+        beSocial.initiateAddingGroup(1, "");
+        beSocial.initiateAddingGroup(2, "");
+        beSocial.logout();
+
+        beSocial.login(user3.name, user3.password);
+        beSocial.initiateAddingGroup(0, "");
+        beSocial.initiateAddingGroup(1, "");
+        beSocial.initiateAddingGroup(2, "");
+        beSocial.logout();
+
+        beSocial.login(user4.name, user4.password);
+        beSocial.initiateAddingGroup(0, "");
+        beSocial.initiateAddingGroup(1, "");
+        beSocial.initiateAddingGroup(2, "");
+        beSocial.logout();
 
         // Show the pending group member table before
+        boolean test1 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
 
-        // Try and accept members from the third group with a size of 2 to show that it won't go over group limit
+            System.out.println("Printing pendingGroupMember table before test");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
 
-        // Show pending group members for group 3 to show that the users who were accepted but group is full won't be removed
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
 
-        // Accept pending members for the second group
+            System.out.println("Expected number of entries: 9");
+            System.out.println("Actual number of entries: " + count);
+
+            test1 = (count == 9);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Log into user from createGroup test
+        beSocial.login(user1.name, user1.password);
+
+        // Try and accept members from group 0 with a size of 2 to show that it won't go over group limit
+        List<List<Integer>> usersChosen = new LinkedList<>();
+        usersChosen.add(Arrays.asList(0, 2));
+        usersChosen.add(Arrays.asList(0, 3));
+        usersChosen.add(Arrays.asList(0, 4));
+        
+        beSocial.confirmGroupMembership(1, usersChosen);
+
+        System.out.println("There should be two error messages saying cannot exceed max group size");
+
+        // Show pending group members for group 0 to show that the users who were accepted but group is full won't be removed
+        boolean test2 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after adding to a group that fills up test");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 8");
+            System.out.println("Actual number of entries: " + count);
+
+            test2 = (count == 8);
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+
+        // Accept pending members for the second and third group
+        beSocial.confirmGroupMembership(-1, usersChosen);
+
+        // Show that yet again, the two members waiting to join group 0 are still there
+        boolean test3 = false;
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM pendingGroupMember;";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing pendingGroupMember table after adding to a group that fills up test");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String requestText = rs.getString("requestText");
+                Timestamp requestTime = rs.getTimestamp("requestTime");
+
+                System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 2");
+            System.out.println("Actual number of entries: " + count);
+
+            test3 = (count == 2);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // Show that the accepted members are no longer in the pendinggroupmember table but are in groupmember table as members
+        try {
+            Statement st = conn.createStatement();
+            String query = "SELECT * FROM groupMember WHERE role='member';";
+            ResultSet rs = st.executeQuery(query);
+
+            System.out.println("Printing groupMember table after adding to a groups");
+            System.out.println("----------------------------------------------");
+            int count = 0;
+            while (rs.next()) {
+                int gID = rs.getInt("gID");
+                int userID = rs.getInt("userID");
+                String role = rs.getString("role");
+                Timestamp lastConfirmed = rs.getTimestamp("lastConfirmed");
+
+                System.out.println(gID + "      " + userID + "      " + role + "     " + lastConfirmed.toString());
+                count++;
+            }
+            System.out.println("----------------------------------------------");
+
+            System.out.println("Expected number of entries: 7");
+            System.out.println("Actual number of entries: " + count);
+
+            test3 = (count == 7);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
 
         // logout
+        beSocial.logout();
 
         // log into admin
+        beSocial.login("admin", "admin");
 
         // show that admin has no groups
-        System.out.println("Test Confirm Group Membership not Implemented");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        PrintStream old = System.out;
+        System.setOut(ps);
+
+        beSocial.confirmGroupMembership(-1, null);
+
+        System.out.flush();
+        System.setOut(old);
+
+        String output = baos.toString();
+        System.out.println(output);
+        boolean test4 = output.contains("No groups are currently managed");
+
+        beSocial.logout();
+
+        // Try and accept request for group that has no requests
+        beSocial.login(user1.name, user1.password);
+
+        // Delete last two entries from pendingGroupMember table manually
+        try {
+            Statement st = conn.createStatement();
+            String query = "DELETE FROM pendingGroupMember;";
+            st.executeUpdate(query);
+            st.close();
+        } catch (SQLException e) {
+            System.out.println("Failed to remove pendingGroupMember");
+            return;
+        }
+        
+        baos = new ByteArrayOutputStream();
+        ps = new PrintStream(baos);
+        old = System.out;
+        System.setOut(ps);
+
+        beSocial.confirmGroupMembership(-1, null);
+
+        System.out.flush();
+        System.setOut(old);
+
+        output = baos.toString();
+
+        System.out.println(output);
+        boolean test5 = output.contains("No Pending Group Membership Requests");
+
+        beSocial.logout();
+
+        if (test1 && test2 && test3 && test4 && test5) {
+            System.out.println("Test Confirm Group Membership Passed");
+        } else {
+            System.out.println("Test Confirm Group Membership Failed");
+            System.out.println("Test 1: " + test1);
+            System.out.println("Test 2: " + test2);
+            System.out.println("Test 3: " + test3);
+            System.out.println("Test 4: " + test4);
+            System.out.println("Test 5: " + test5);
+        }
+
     }
 
     private static void testInitiateAddingGroup() {
@@ -608,10 +834,11 @@ public class Driver {
             while (rs.next()) {
                 int gID = rs.getInt("gID");
                 int userID = rs.getInt("userID");
-                String requestText = rs.getString("resultText");
+                String requestText = rs.getString("requestText");
                 Timestamp requestTime = rs.getTimestamp("requestTime");
 
                 System.out.println(gID + "      " + userID + "      " + requestText + "     " + requestTime.toString());
+                count++;
             }
             System.out.println("----------------------------------------------");
 
