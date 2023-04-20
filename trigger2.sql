@@ -355,7 +355,17 @@ BEGIN
     -- Set the constraints to be deferred
     SET CONSTRAINTS ALL DEFERRED;
 
-    -- Make sure that the user is in the group
+    -- Make sure that the user is in any group
+    SELECT G.gid
+    INTO groupNum
+    FROM groupmember AS G
+    WHERE G.userid = leaveGroup.userID;
+
+    IF groupNum IS NULL THEN
+        RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
+    END IF;
+
+    -- Make sure that the user is in the specific group
     SELECT G.gid
     INTO groupNum
     FROM groupmember AS G
@@ -363,7 +373,7 @@ BEGIN
       AND G.gid = leaveGroup.gID;
 
     IF groupNum IS NULL THEN
-        RAISE EXCEPTION 'Not a member of any Groups' USING ERRCODE = '00001';
+        RAISE EXCEPTION 'Not a member of specified Group' USING ERRCODE = '00002';
     END IF;
 
     -- Now remove the group member
@@ -383,6 +393,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION sendMessageToUser(fromUser INT, toUser INT, text varchar(200))
     RETURNS BOOLEAN AS

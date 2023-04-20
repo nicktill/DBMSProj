@@ -1149,6 +1149,7 @@ public class BeSocial {
             pStatement.setInt(2, groupToLeave);
             pStatement.execute();
             conn.commit();
+            System.out.println("Successfully left group " + groupToLeave);
         } catch (SQLException e) {
             if (e.getSQLState().equals("00001")) {
                 System.out.println("ERROR: " + e.getMessage());
