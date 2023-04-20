@@ -941,14 +941,45 @@ public class Driver {
     // Nick
     private static void testLogin() {
         // Start by calling logout for pure isolation
-
+        // !ONLY LOGOUT IF USER IS LOGGED IN (to prevent error message 'User is not logged in')
+        if (beSocial.userID != -1) {
+            beSocial.logout();
+        }
+        // ! ACTUAL OUTPUT
+        System.out.println("Actual Output: \n\n");
         // Print the userID of beSocial, should be -1
-        
+        System.out.println("User ID Before Login: " + beSocial.userID);
         // Log in user
-
+        beSocial.login(user1.name, user1.password);
         // Print the userID now, should not be -1
+        System.out.println("User ID After Login: " + beSocial.userID);
+        // Log out user
+        System.out.println("Logging out user to test login with invalid credentials");
+        beSocial.logout();
+        System.out.println("Testing login with incorrect credentials");
+        // Try to log in with incorrect credentials
+        beSocial.login(user1.name, "wrongPassword");
+
+        // Print the userID now, should be -1
+        System.out.println("User ID After Login With Invalid Credentials " + beSocial.userID);
+        System.out.println("Login test completed\n\n");
+
+
+        // ! EXPECTED OUTPUT
+        System.out.println("Expected Output: \n\n");
+        System.out.println("User ID Before Login: -1");
+        System.out.println("Successfully logged in as Steven Jarmell");
+        System.out.println("User ID After Login: 1");
+        System.out.println("Logging out user to test login with invalid credentials");
+        System.out.println("Logging out...");
+        System.out.println("Successfully logged out");
+        System.out.println("Testing login with incorrect credentials");
+        System.out.println("Could not log in user, please try again.");
+        System.out.println("User ID After Login With Invalid Credentials -1");
+        System.out.println("Login test completed\n\n");
 
         // Do comparison is old == new, if false, login worked if true login didnt work
+
     }
 
     private static void testDropProfile() {
