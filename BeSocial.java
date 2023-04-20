@@ -118,6 +118,7 @@ public class BeSocial {
                     if ((!(userID == ADMIN_USER_ID) && userInput == 1)
                             || (!(userID == ADMIN_USER_ID) && userInput == 2)) {
                         System.out.println("You do not have permission to perform this operation.");
+                        continue;
                     }
                 } else {
                     // If they are not logged in, they can only choose login or exit
