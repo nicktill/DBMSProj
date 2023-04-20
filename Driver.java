@@ -434,9 +434,31 @@ public class Driver {
         System.out.println("Test Rank Profiles Not Implemented");
     }
 
-    // TODO
     private static void testRankGroups() {
-        System.out.println("Test Rank Groups Not Implemented");
+        // TODO: Come back when other group related tests have been written
+
+        // First call rankGroups when there are groups in the system
+        System.out.println("\n--------------------------------------");
+        System.out.println("Expected output:");
+        // TODO: Fill in
+        System.out.println("--------------------------------------");
+        System.out.println("Actual results:");
+        beSocial.rankGroups();
+
+        // Log out and log in as admin
+        beSocial.logout();
+        beSocial.login("admin", "admin");
+
+        // Remove all groups
+        // TODO: Figure out how to do this
+
+        // Call rank groups
+        System.out.println("\n--------------------------------------");
+        System.out.println("Expected output:");
+        System.out.println("No Groups to Rank");
+        System.out.println("--------------------------------------");
+        System.out.println("Actual results:");
+        beSocial.rankGroups();
     }
 
     // TODO
