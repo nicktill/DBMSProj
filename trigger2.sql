@@ -254,7 +254,7 @@ BEGIN
         END LOOP;
 
     IF requestText IS NULL THEN
-        INSERT INTO pendinggroupmember VALUES (groupID, uID, (SELECT pseudo_time FROM clock));
+        INSERT INTO pendinggroupmember VALUES (groupID, uID, DEFAULT, (SELECT pseudo_time FROM clock));
     ELSE
         INSERT INTO pendinggroupmember VALUES (groupID, uID, requestText, (SELECT pseudo_time FROM clock));
     END IF;
