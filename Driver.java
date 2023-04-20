@@ -1,4 +1,7 @@
 import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
@@ -477,7 +480,42 @@ public class Driver {
 
     // TODO
     private static void testDisplayNewMessages() {
-        System.out.println("Test Display New Messages Not Implemented");
+        // log out and log in to user1
+        beSocial.logout();
+        beSocial.login(user1.name, user1.password);
+
+        // Get the current time
+        Timestamp curTime;
+        try {
+            PreparedStatement s = conn.prepareStatement("SELECT * FROM clock;");
+            ResultSet rs = s.executeQuery();
+            rs.next();
+            curTime = rs.getTimestamp(1);
+        } catch (SQLException e) {
+            System.out.println("Error getting current time");
+            return;
+        }
+
+        // Send a message to user2
+        beSocial.sendMessageToUser("Hello Kenny Pickett!", 2);
+
+        // Change the time in the system
+        ZonedDateTime zonedDateTime = curTime.toInstant().atZone(ZoneId.of("UTC"));
+        Timestamp newTimestamp = Timestamp.from(zonedDateTime.plus(14, ChronoUnit.DAYS).toInstant());
+        try {
+            PreparedStatement s = conn.prepareStatement("UPDATE clock SET pseudo_time=" + newTimestamp.toString() + ";");
+            s.execute();
+        } catch (SQLException e) {
+            System.out.println("Error getting current time");
+            return;
+        }
+
+        // log out and log in to user2
+        beSocial.logout();
+        beSocial.login(user2.name, user2.password);
+
+        // Now display new messages
+        beSocial.displayNewMessages();
     }
 
     private static void testDisplayMessages() {
