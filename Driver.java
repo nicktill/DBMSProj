@@ -432,13 +432,27 @@ public class Driver {
     // TODO
     private static void testTopMessages() {
         // Assumptions: sendMessagetoUser/Group has been run before
+
         //
         System.out.println("Test Top Messages Not Implemented");
     }
 
     // TODO
     private static void testRankProfiles() {
-        System.out.println("Test Rank Profiles Not Implemented");
+        // Show ranks
+        beSocial.rankProfiles();
+        
+        System.out.println("Adding more friends...");
+
+        // Add some more friendships
+        try {
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO friend VALUES (5, 4, '2022-01-01'); INSERT INTO friend VALUES (1, 5, '2022-01-05');");
+            ps.execute();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        beSocial.rankProfiles();
     }
 
     private static void testRankGroups() {
@@ -519,12 +533,11 @@ public class Driver {
     private static void testDisplayMessages() {
         // Login to user with no messages
 
-        //
+        // 
 
         // Logout
     }
 
-    // TODO
     private static void testSendMessageToGroup() {
         // Login
         beSocial.login(user3.name, user3.password);
@@ -2134,7 +2147,7 @@ public class Driver {
         // Show that profile table is empty
         try {
             Statement st = conn.createStatement();
-            String query = "SELECT * FROM profile WHERE userID;";
+            String query = "SELECT * FROM profile WHERE userID!=0;";
             ResultSet rs = st.executeQuery(query);
             System.out.println("Displaying profile table at the start of createProfile Method");
             System.out.println("--------------------------------------------------------------");
