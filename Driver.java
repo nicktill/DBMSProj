@@ -478,7 +478,6 @@ public class Driver {
         System.out.println("Test Display Friends Not Implemented");
     }
 
-    // TODO
     private static void testDisplayNewMessages() {
         // log out and log in to user1
         beSocial.logout();

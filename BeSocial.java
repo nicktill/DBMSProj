@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Queue;
 
 public class BeSocial {
     private static Scanner sc;
@@ -251,7 +252,7 @@ public class BeSocial {
                         beSocial.displayNewMessages();
                         break;
                     case 15:
-                        beSocial.displayFriends();
+                        beSocial.displayFriends(null);
                         break;
                     case 16:
                         beSocial.rankGroups();
@@ -1473,7 +1474,7 @@ public class BeSocial {
     // * formatted way, after which the user should be prompted to either select to
     // retrieve another
     // * friend's profile or return to the main menu.
-    public void displayFriends() {
+    public void displayFriends(Queue<Integer> inputs) {
         // List all friends of the user
         try {
             PreparedStatement s = conn.prepareStatement("SELECT * FROM getFriends(?);");
@@ -1485,6 +1486,10 @@ public class BeSocial {
             }
 
             do {
+                if (rs.getInt("friendID") == 0) {
+                    // Do not list the admin details/it is our exit input
+                    continue;
+                }
                 // Print out each profile
                 System.out.println(
                         String.format("User ID: %d\tName: %s",
@@ -1496,10 +1501,15 @@ public class BeSocial {
             printErrors(e);
         }
 
-        System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
         int profileID = 0;
-        profileID = sc.nextInt();
-        sc.nextLine(); // Clear the buffer
+        if (!isDriverMode) {
+            System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+            profileID = sc.nextInt();
+            sc.nextLine(); // Clear the buffer
+        } else {
+            profileID = inputs.poll();
+        }
+        
 
         while (profileID > 0) {
             // Retrieve friend information and print it
@@ -1525,10 +1535,14 @@ public class BeSocial {
                 }
             }
 
-            // Get give user option to enter input again
-            System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
-            profileID = sc.nextInt();
-            sc.nextLine(); // Clear the buffer
+            if (!isDriverMode) {
+                // Get give user option to enter input again
+                System.out.println("Enter a friend's user ID to get their information, or 0 to exit.");
+                profileID = sc.nextInt();
+                sc.nextLine(); // Clear the buffer
+            } else {
+                profileID = inputs.poll();
+            }
         }
     }
 
