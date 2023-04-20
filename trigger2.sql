@@ -725,3 +725,41 @@ BEGIN
                  FROM friend f2;
 end;
 $$ LANGUAGE plpgsql;
+
+-- We want a trigger to make sure that the group size will never go over the max size
+CREATE OR REPLACE FUNCTION check_group_size()
+    RETURNS TRIGGER AS
+$$
+DECLARE
+    groupMaxSize  int;
+    groupCurrSize int;
+BEGIN
+    SELECT size
+    INTO groupMaxSize
+    FROM groupInfo
+    WHERE gID = NEW.gID;
+
+    IF groupMaxSize IS NULL THEN
+        -- Group/group size is not valid
+        RAISE EXCEPTION 'Group is not valid' USING ERRCODE = '00004';
+    END IF;
+
+    SELECT COUNT(userID)
+    INTO groupCurrSize
+    FROM groupMember
+    WHERE gID = NEW.gID;
+
+    IF groupCurrSize + 1 > groupMaxSize THEN
+        -- Should not make this change, return null
+        RAISE EXCEPTION 'Cannot exceed max group size' USING ERRCODE = '00001';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER groupSize
+    BEFORE INSERT
+    ON groupMember
+    FOR EACH ROW
+EXECUTE FUNCTION check_group_size();
