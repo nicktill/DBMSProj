@@ -745,9 +745,9 @@ public class Driver {
     // Create a group with a name and description
     System.out.println("Creating three new groups...");
     try{
-        beSocial.createGroup("Test Group 1", "This is a test group", 10);
-        beSocial.createGroup("Test Group 2", "This is a test group", 15);
-        beSocial.createGroup("Test Group 3", "This is a test group", 17);
+        beSocial.createGroup("Test Group 1", "This is a test group description #1", 2);
+        beSocial.createGroup("Test Group 2", "This is a test group description #2", -1); //test default value 10
+        beSocial.createGroup("Test Group 3", "This is a test group description #3", 17);
     }
     catch (SQLException e) {
         System.out.println(e);
@@ -1229,7 +1229,6 @@ public class Driver {
         System.out.println("Login test completed\n\n");
 
         // Do comparison is old == new, if false, login worked if true login didnt work
-
     }
 
     // TODO
