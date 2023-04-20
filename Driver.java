@@ -484,12 +484,36 @@ public class Driver {
 
     // TODO
     private static void testDisplayFriends() {
-        System.out.println("Test Display Friends Not Implemented");
+        // create a linkedList 
+        LinkedList <Integer> s = new LinkedList<Integer>();
+        try {
+            PreparedStatement addFriend = conn.prepareStatement("INSERT INTO friend VALUES(1, 3, '2023-04-19', 'hey there bud');");
+            addFriend.execute();
+        } catch (SQLException e) {
+            System.out.println("Error adding friend");
+            return;
+        }
+        s.add(2); //this is the specific profileID of the user you want to search
+        s.add(0);
+        
+        // logout of user
+        beSocial.logout(); 
+        // login as admin 
+        beSocial.login("admin", "admin");
+        // display friends of user (should be no friends and should not be prompted to pass the friends for search)
+        beSocial.displayFriends(s); // should display no friends
+        
+        // logout 
+        beSocial.logout(); 
+        // login as user1 (Steven Jarmell)
+        beSocial.login(user1.name, user1.password);
+        // display friends passing in 'S' as the search parameter for searching friends
+        beSocial.displayFriends(s); 
     }
 
     private static void testDisplayNewMessages() {
         // log out and log in to user1
-        beSocial.logout();
+        beSocial.logout(); 
         beSocial.login(user1.name, user1.password);
 
         // Get the current time
